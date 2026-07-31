@@ -1,0 +1,85 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم الموظف - نظام إدارة المعهد</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .kpi-card { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--card-border); border-radius: 1rem; padding: 1.5rem; display: flex; align-items: center; justify-content: space-between; transition: var(--trans); box-shadow: var(--card-shadow); position: relative; overflow: hidden; }
+        .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; }
+        .kpi-card:nth-child(1)::before { background: linear-gradient(90deg, #4F46E5, #818CF8); }
+        .kpi-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
+        .kpi-info h4 { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.25rem; }
+        .kpi-info p { font-size: 2rem; font-weight: 800; margin: 0; background: linear-gradient(to right, #fff, #94A3B8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .kpi-icon { width: 55px; height: 55px; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #fff; }
+        .kpi-icon.blue { background: linear-gradient(135deg, #4F46E5, #818CF8); box-shadow: 0 6px 15px rgba(79,70,229,0.4); }
+        .section-box { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--card-border); border-radius: 1rem; padding: 1.5rem; box-shadow: var(--card-shadow); margin-bottom: 1.5rem; }
+        .section-box h3 { font-size: 1rem; color: var(--text-muted); margin-bottom: 1rem; font-weight: 600; }
+        .msg-item { display: flex; gap: 1rem; padding: 0.85rem 1rem; border-radius: 0.75rem; background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); margin-bottom: 0.5rem; }
+        .msg-item .msg-icon { color: var(--primary); font-size: 1.2rem; }
+        .msg-item .msg-body { flex: 1; }
+        .msg-item .msg-body strong { display: block; color: var(--text-main); }
+        .msg-item .msg-body span { font-size: 0.85rem; color: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h3>نظام المعهد</h3>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="{% url 'dashboard' %}" class="active"><i class="fas fa-home"></i> الرئيسية</a></li>
+                <li><a href="{% url 'messages' %}"><i class="fas fa-envelope"></i> الرسائل</a></li>
+                <li><a href="{% url 'logout' %}" style="color:#F87171;margin-top:2rem;"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</a></li>
+            </ul>
+        </nav>
+        <div class="main-content">
+            <header class="topbar">
+                <div class="topbar-title">
+                    <h4><i class="fas fa-id-badge" style="margin-left:0.5rem;color:var(--info);"></i> لوحة تحكم الموظف</h4>
+                </div>
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i> {{ user.get_full_name|default:user.username }} ({{ user.get_role_display }})
+                </div>
+            </header>
+            <main class="content">
+                <div class="dashboard-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-info">
+                            <h4>الرسائل غير المقروءة</h4>
+                            <p>{{ unread_messages|default:"0" }}</p>
+                        </div>
+                        <div class="kpi-icon blue"><i class="fas fa-envelope-open"></i></div>
+                    </div>
+                </div>
+
+                <div class="section-box">
+                    <h3><i class="fas fa-inbox" style="margin-left:0.5rem;color:var(--primary);"></i> آخر الرسائل</h3>
+                    {% if recent_messages %}
+                        {% for msg in recent_messages %}
+                        <div class="msg-item">
+                            <div class="msg-icon"><i class="fas fa-envelope{% if not msg.is_read %}-open{% endif %}"></i></div>
+                            <div class="msg-body">
+                                <strong>{{ msg.sender.get_full_name|default:msg.sender.username }}</strong>
+                                <span>{{ msg.content|truncatechars:80 }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        <div style="text-align:center;margin-top:1rem;">
+                            <a href="{% url 'messages' %}" class="btn btn-primary">عرض كل الرسائل</a>
+                        </div>
+                    {% else %}
+                        <p style="color:var(--text-muted);text-align:center;padding:2rem;">لا توجد رسائل</p>
+                    {% endif %}
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+</html>
