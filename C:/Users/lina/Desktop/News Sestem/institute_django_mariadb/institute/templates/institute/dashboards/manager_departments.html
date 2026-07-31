@@ -1,0 +1,127 @@
+{% extends 'institute/dashboards/base_dashboard.html' %}
+
+{% block title %}إدارة الأقسام المؤسسية{% endblock %}
+{% block page_title %}إدارة الأقسام المؤسسية{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3 style="margin: 0;"><i class="fas fa-building" style="color:var(--primary); margin-left: 10px;"></i> الأقسام
+            الحالية</h3>
+        <button class="btn btn-primary" onclick="openModal('addDeptModal')">
+            <i class="fas fa-plus"></i> إضافة قسم جديد
+        </button>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>م</th>
+                    <th>كود القسم (رقم)</th>
+                    <th>اسم القسم</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dept in departments %}
+                <tr>
+                    <td style="font-weight: 600;">{{ forloop.counter }}</td>
+                    <td><span class="badge badge-primary">{{ dept.code }}</span></td>
+                    <td style="font-weight: 600; font-size: 1.05rem;">{{ dept.name }}</td>
+                    <td>
+                        <button type="button" class="btn btn-warning"
+                            style="padding: 0.3rem 0.6rem; font-size: 0.8rem; margin-left: 0.5rem;"
+                            onclick="openEditDeptModal('{{ dept.id }}', '{{ dept.name|escapejs }}')">
+                            <i class="fas fa-edit"></i> تعديل
+                        </button>
+                        <form method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="dept_id" value="{{ dept.id }}">
+                            <button type="submit" class="btn btn-danger"
+                                style="padding: 0.3rem 0.6rem; font-size: 0.8rem;"
+                                onclick="return confirm('هل أنت متأكد من حذف هذا القسم؟ قد يؤثر ذلك على المقررات المرتبطة به!');">
+                                <i class="fas fa-trash"></i> حذف
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 3rem 1rem;">
+                        <i class="fas fa-folder-open"
+                            style="font-size: 3rem; opacity: 0.5; margin-bottom: 1rem; display: block;"></i>
+                        لا توجد أقسام مسجلة حالياً.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="addDeptModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">إضافة قسم جديد</h3>
+            <button type="button" class="modal-close" onclick="closeModal('addDeptModal')">&times;</button>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add">
+
+            <div class="form-group">
+                <label>رقم القسم (يجب أن يكون رقماً صحيحاً، مثال: 101) *</label>
+                <input type="number" name="code" class="form-control" required min="1">
+            </div>
+
+            <div class="form-group">
+                <label>اسم القسم *</label>
+                <input type="text" name="name" class="form-control" required placeholder="مثال: علوم الحاسب">
+            </div>
+
+            <div style="margin-top: 2rem; text-align: left;">
+                <button type="button" class="btn" style="background: rgba(255,255,255,0.1); color:#fff;"
+                    onclick="closeModal('addDeptModal')">إلغاء</button>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ القسم</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal التعديل -->
+<div class="modal-overlay" id="editDeptModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">تعديل بيانات القسم</h3>
+            <button type="button" class="modal-close" onclick="closeModal('editDeptModal')">&times;</button>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="edit">
+            <input type="hidden" name="dept_id" id="edit_dept_id">
+
+            <div class="form-group">
+                <label>اسم القسم *</label>
+                <input type="text" name="name" id="edit_dept_name" class="form-control" required>
+            </div>
+
+            <div style="margin-top: 2rem; text-align: left;">
+                <button type="button" class="btn" style="background: rgba(255,255,255,0.1); color:#fff;"
+                    onclick="closeModal('editDeptModal')">إلغاء</button>
+                <button type="submit" class="btn btn-warning"><i class="fas fa-save"></i> حفظ التعديلات</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openEditDeptModal(id, name) {
+        document.getElementById('edit_dept_id').value = id;
+        document.getElementById('edit_dept_name').value = name;
+        openModal('editDeptModal');
+    }
+</script>
+{% endblock %}
