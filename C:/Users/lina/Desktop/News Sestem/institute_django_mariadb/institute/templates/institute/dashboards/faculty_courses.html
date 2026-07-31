@@ -1,0 +1,311 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>رصد الدرجات - نظام إدارة المعهد</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        .courses-sidebar-box {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--card-shadow);
+        }
+        .course-list-items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+        .course-item-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            transition: var(--trans);
+            text-align: right;
+            width: 100%;
+            cursor: pointer;
+        }
+        .course-item-btn:hover, .course-item-btn.active {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.25), rgba(236, 72, 153, 0.15));
+            border-color: var(--primary);
+            transform: translateX(-5px);
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.2);
+        }
+        .course-item-btn.active .badge-active {
+            background: var(--primary);
+            color: #fff;
+        }
+        .badge-active {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            background: rgba(255, 255, 255, 0.1);
+            font-weight: bold;
+        }
+        .grade-input {
+            width: 90px;
+            padding: 0.5rem;
+            text-align: center;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--card-border);
+            border-radius: 0.5rem;
+            color: #fff;
+            font-weight: bold;
+            transition: var(--trans);
+        }
+        .grade-input:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.2);
+        }
+        .total-grade-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 800;
+            font-size: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            min-width: 70px;
+            text-align: center;
+        }
+        .reason-input {
+            width: 100%;
+            padding: 0.5rem;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--card-border);
+            border-radius: 0.5rem;
+            color: #fff;
+            font-family: inherit;
+        }
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 1.5rem;
+        }
+        @media (max-width: 992px) {
+            .grid-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h3>نظام المعهد</h3>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="{% url 'dashboard' %}"><i class="fas fa-home"></i> الرئيسية</a></li>
+                <li><a href="{% url 'faculty_courses' %}" class="active"><i class="fas fa-book"></i> مقرراتي</a></li>
+                <li><a href="{% url 'messages' %}"><i class="fas fa-envelope"></i> الرسائل</a></li>
+                <li><a href="{% url 'logout' %}" style="color:#F87171;margin-top:2rem;"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</a></li>
+            </ul>
+        </nav>
+        <div class="main-content">
+            <header class="topbar">
+                <div class="topbar-title">
+                    <h4><i class="fas fa-chalkboard-teacher" style="margin-left:0.5rem;color:var(--secondary);"></i> رصد وتعديل الدرجات</h4>
+                </div>
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i> {{ user.get_full_name|default:user.username }} ({{ user.get_role_display }})
+                </div>
+            </header>
+            <main class="content">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }}">
+                            <i class="fas fa-info-circle" style="margin-left:10px;"></i>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <div class="grid-layout">
+                    <!-- Sidebar list of courses -->
+                    <div>
+                        <div class="courses-sidebar-box">
+                            <h3 style="font-size:1.1rem;margin-bottom:0.5rem;"><i class="fas fa-graduation-cap" style="color:var(--primary);margin-left:0.5rem;"></i> مقرراتك الدراسية</h3>
+                            <p style="color:var(--text-muted);font-size:0.85rem;">اختر المقرر الذي ترغب في رصد درجات طلابه:</p>
+                            <div class="course-list-items">
+                                {% for course in courses %}
+                                    <a href="?course_id={{ course.id }}" class="course-item-btn {% if selected_course.id == course.id %}active{% endif %}">
+                                        <span>{{ course.name }}</span>
+                                        <span class="badge-active">كود {{ course.code }}</span>
+                                    </a>
+                                {% empty %}
+                                    <p style="color:var(--text-muted);text-align:center;padding:1rem;">لا توجد مقررات مسندة لك حالياً.</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grading panel -->
+                    <div>
+                        {% if selected_course %}
+                            <div class="card">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+                                     <div>
+                                         <h2 style="font-size:1.4rem;margin:0;color:var(--text-main);">رصد الدرجات لمقرر: <span style="color:var(--secondary);">{{ selected_course.sub_name }}</span></h2>
+                                         <p style="color:var(--text-muted);margin:0;font-size:0.9rem;">أدخل الدرجات الأربعة لكل طالب: الحضور (10) + النشاطات (10) + النصفي (20) + النهائي (60) = 100 درجة.</p>
+                                     </div>
+                                    <div class="badge-active" style="padding:0.5rem 1rem;font-size:0.9rem;background:rgba(236, 72, 153, 0.1);color:var(--secondary);border:1px solid rgba(236,72,153,0.2);">
+                                        عدد الطلاب: {{ course_enrollments|length }}
+                                    </div>
+                                </div>
+
+                                <form method="POST">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="course_id" value="{{ selected_course.sub_no }}">
+                                    
+                                    <div class="table-responsive">
+                                        <table class="table" style="width:100%;border-collapse:collapse;">
+                                             <thead>
+                                                 <tr>
+                                                     <th>اسم الطالب</th>
+                                                     <th style="text-align:center;width:100px;">حضور وغياب<br><small style="color:#94A3B8;">/10</small></th>
+                                                     <th style="text-align:center;width:100px;">نشاطات<br><small style="color:#94A3B8;">/10</small></th>
+                                                     <th style="text-align:center;width:100px;">نصفي<br><small style="color:#94A3B8;">/20</small></th>
+                                                     <th style="text-align:center;width:100px;">نهائي<br><small style="color:#94A3B8;">/60</small></th>
+                                                     <th style="text-align:center;width:120px;">المجموع / 100</th>
+                                                     <th>سبب التعديل (اختياري)</th>
+                                                 </tr>
+                                             </thead>
+                                             <tbody>
+                                                 {% for enrollment in course_enrollments %}
+                                                     <tr data-student-id="{{ enrollment.id }}">
+                                                         <td>
+                                                             <strong style="color:var(--text-main);">{{ enrollment.student.get_full_name }}</strong>
+                                                         </td>
+                                                         <td style="text-align:center;">
+                                                             <input type="number" 
+                                                                    name="attendance_score_{{ enrollment.id }}" 
+                                                                    value="{{ enrollment.attendance_grade }}" 
+                                                                    class="grade-input js-att-input" 
+                                                                    step="0.01" min="0" max="10" required>
+                                                         </td>
+                                                         <td style="text-align:center;">
+                                                             <input type="number" 
+                                                                    name="activity_score_{{ enrollment.id }}" 
+                                                                    value="{{ enrollment.activity_grade }}" 
+                                                                    class="grade-input js-activity-input" 
+                                                                    step="0.01" min="0" max="10" required>
+                                                         </td>
+                                                         <td style="text-align:center;">
+                                                             <input type="number" 
+                                                                    name="midterm_score_{{ enrollment.id }}" 
+                                                                    value="{{ enrollment.midterm_grade }}" 
+                                                                    class="grade-input js-mid-input" 
+                                                                    step="0.01" min="0" max="20" required>
+                                                         </td>
+                                                         <td style="text-align:center;">
+                                                             <input type="number" 
+                                                                    name="final_score_{{ enrollment.id }}" 
+                                                                    value="{{ enrollment.final_grade }}" 
+                                                                    class="grade-input js-final-input" 
+                                                                    step="0.01" min="0" max="60" required>
+                                                         </td>
+                                                         <td style="text-align:center;">
+                                                             <span class="total-grade-badge js-total-badge">{{ enrollment.grade }}</span>
+                                                         </td>
+                                                         <td>
+                                                             <input type="text" 
+                                                                    name="edit_reason_{{ enrollment.id }}" 
+                                                                    placeholder="اكتب سبب تعديل الدرجة هنا..." 
+                                                                    value="{{ enrollment.edit_reason }}"
+                                                                    class="reason-input">
+                                                         </td>
+                                                     </tr>
+                                                 {% empty %}
+                                                     <tr>
+                                                         <td colspan="7" style="text-align:center;color:var(--text-muted);padding:3rem;">
+                                                             لا يوجد طلاب مسجلون في هذا المقرر حالياً.
+                                                         </td>
+                                                     </tr>
+                                                 {% endfor %}
+                                             </tbody>
+                                        </table>
+                                    </div>
+
+                                    {% if course_enrollments %}
+                                        <div style="display:flex;justify-content:flex-end;margin-top:2rem;gap:1rem;">
+                                            <div style="background:rgba(255,255,255,0.03); border:1px solid var(--card-border); border-radius:0.75rem; padding:0.75rem 1.25rem; font-size:0.85rem; color:var(--text-muted); text-align:center;">
+                                                <i class="fas fa-info-circle"></i> الحضور (10) + النشاطات (10) + النصفي (20) + النهائي (60) = 100 درجة
+                                            </div>
+                                            <button type="submit" class="btn btn-primary"><i class="fas fa-save" style="margin-left:0.5rem;"></i> حفظ كافة الدرجات والمعدلات</button>
+                                        </div>
+                                    {% endif %}
+                                </form>
+                            </div>
+                        {% else %}
+                            <div class="card" style="text-align:center;padding:4rem 2rem;">
+                                <i class="fas fa-book-open" style="font-size:4rem;color:var(--primary);margin-bottom:1.5rem;opacity:0.5;"></i>
+                                <h2>مرحباً بك في بوابة رصد الدرجات</h2>
+                                <p style="color:var(--text-muted);max-width:500px;margin:0 auto 1.5rem;">يرجى اختيار أحد المقررات المسندة إليك من القائمة الجانبية لعرض الطلاب والبدء برصد أو تعديل درجاتهم.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // دالة لحساب وتحديث الدرجة النهائية تلقائياً لكل طالب (من 4 حقول)
+            function updateFinalGrade(row) {
+                const attInput    = row.querySelector('.js-att-input');
+                const actInput    = row.querySelector('.js-activity-input');
+                const midInput    = row.querySelector('.js-mid-input');
+                const finInput    = row.querySelector('.js-final-input');
+                const totalBadge  = row.querySelector('.js-total-badge');
+
+                const att   = parseFloat(attInput ? attInput.value : 0) || 0;
+                const act   = parseFloat(actInput ? actInput.value : 0) || 0;
+                const mid   = parseFloat(midInput ? midInput.value : 0) || 0;
+                const fin   = parseFloat(finInput ? finInput.value : 0) || 0;
+                const total = att + act + mid + fin;
+
+                totalBadge.textContent = total.toFixed(2);
+
+                // تلوين المجموع حسب النجاح/الرسوب (50% للنجاح)
+                if (total >= 50) {
+                    totalBadge.style.background    = 'rgba(16,185,129,0.1)';
+                    totalBadge.style.borderColor   = 'rgba(16,185,129,0.3)';
+                    totalBadge.style.color         = '#34D399';
+                } else {
+                    totalBadge.style.background    = 'rgba(239,68,68,0.1)';
+                    totalBadge.style.borderColor   = 'rgba(239,68,68,0.3)';
+                    totalBadge.style.color         = '#F87171';
+                }
+            }
+
+            // تطبيق الحساب التلقائي عند التحميل الأولي
+            const rows = document.querySelectorAll('tr[data-student-id]');
+            rows.forEach(row => {
+                updateFinalGrade(row);
+                // ربط الأحداث بجميع حقول الإدخال الأربعة
+                ['.js-att-input', '.js-activity-input', '.js-mid-input', '.js-final-input'].forEach(sel => {
+                    const input = row.querySelector(sel);
+                    if (input) input.addEventListener('input', () => updateFinalGrade(row));
+                });
+            });
+        });
+    </script>
+</body>
+</html>
