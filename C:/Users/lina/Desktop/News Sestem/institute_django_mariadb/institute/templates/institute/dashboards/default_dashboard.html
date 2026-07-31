@@ -1,0 +1,64 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - نظام إدارة المعهد</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <img src="{% static 'images/logo.jpg' %}" alt="شعار المعهد" class="sidebar-logo-img">
+                </div>
+                <h3>نظام المعهد</h3>
+            </div>
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="{% url 'dashboard' %}"><i class="fas fa-home"></i> الرئيسية</a>
+                </li>
+                <li>
+                    <a href="{% url 'logout' %}" class="text-danger"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Topbar -->
+            <header class="topbar">
+                <div class="topbar-title">
+                    <h4>لوحة التحكم</h4>
+                </div>
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i> {{ user.get_full_name }} ({{ user.get_role_display }})
+                </div>
+            </header>
+            
+            <main class="content">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <div class="card">
+                    <h2>مرحباً بك في نظام إدارة المعهد</h2>
+                    <p>النظام جاهز للعمل. يرجى الانتظار حتى يتم تحضير لوحة التحكم الخاصة بك.</p>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>
