@@ -1,0 +1,153 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل المقررات - نظام إدارة المعهد</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        .grid-register {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        @media (max-width: 992px) {
+            .grid-register {
+                grid-template-columns: 1fr;
+            }
+        }
+        .course-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: var(--trans);
+            margin-bottom: 1rem;
+        }
+        .course-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+        .course-info h4 {
+            margin: 0 0 0.25rem 0;
+            color: var(--text-main);
+            font-size: 1.05rem;
+        }
+        .course-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            gap: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h3>نظام المعهد</h3>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="{% url 'dashboard' %}"><i class="fas fa-home"></i> الرئيسية</a></li>
+                <li><a href="{% url 'student_transcript' %}"><i class="fas fa-file-alt"></i> كشف الدرجات</a></li>
+                <li><a href="{% url 'student_register' %}" class="active"><i class="fas fa-plus-circle"></i> التسجيل في مقرر</a></li>
+                <li><a href="{% url 'messages' %}"><i class="fas fa-envelope"></i> الرسائل</a></li>
+                <li><a href="{% url 'logout' %}" style="color:#F87171;margin-top:2rem;"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</a></li>
+            </ul>
+        </nav>
+        <div class="main-content">
+            <header class="topbar">
+                <div class="topbar-title">
+                    <h4><i class="fas fa-plus-circle" style="margin-left:0.5rem;color:var(--accent);"></i> تسجيل المقررات الدراسية</h4>
+                </div>
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i> {{ user.get_full_name|default:user.username }} ({{ user.get_role_display }})
+                </div>
+            </header>
+            <main class="content">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }}">
+                            <i class="fas fa-info-circle" style="margin-left:10px;"></i>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <div class="grid-register">
+                    <!-- Available courses to register -->
+                    <div class="card">
+                        <h3 style="font-size:1.2rem;margin-bottom:1.5rem;color:#34D399;"><i class="fas fa-book-open" style="margin-left:0.5rem;"></i> المقررات المتاحة للتسجيل</h3>
+                        
+                        {% if available_courses %}
+                            {% for course in available_courses %}
+                                <div class="course-card">
+                                    <div class="course-info">
+                                        <h4>{{ course.name }}</h4>
+                                        <div class="course-meta">
+                                            <span><i class="fas fa-barcode" style="margin-left:0.25rem;"></i> كود: {{ course.code }}</span>
+                                            <span><i class="far fa-clock" style="margin-left:0.25rem;"></i> ساعات معتمدة: {{ course.credits }}</span>
+                                        </div>
+                                    </div>
+                                    <form method="POST">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="register">
+                                        <input type="hidden" name="course_id" value="{{ course.id }}">
+                                        <button type="submit" class="btn btn-success" style="padding:0.4rem 0.8rem;font-size:0.85rem;">
+                                            <i class="fas fa-plus"></i> تسجيل
+                                        </button>
+                                    </form>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div style="text-align:center;padding:4rem 2rem;color:var(--text-muted);">
+                                <i class="fas fa-check-circle" style="font-size:3rem;margin-bottom:1rem;color:var(--success);opacity:0.6;"></i>
+                                <p>لقد قمت بتسجيل كافة المقررات المتاحة لمستواك وتخصصك!</p>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Enrolled courses -->
+                    <div class="card">
+                        <h3 style="font-size:1.2rem;margin-bottom:1.5rem;color:var(--secondary);"><i class="fas fa-folder-open" style="margin-left:0.5rem;"></i> مقرراتك المسجلة حالياً</h3>
+                        
+                        {% if current_enrollments %}
+                            {% for enrollment in current_enrollments %}
+                                <div class="course-card" style="border-right: 4px solid var(--secondary);">
+                                    <div class="course-info">
+                                        <h4>{{ enrollment.course.name }}</h4>
+                                        <div class="course-meta">
+                                            <span><i class="fas fa-barcode" style="margin-left:0.25rem;"></i> كود: {{ enrollment.course.code }}</span>
+                                            <span><i class="far fa-clock" style="margin-left:0.25rem;"></i> ساعات معتمدة: {{ enrollment.course.credits }}</span>
+                                        </div>
+                                    </div>
+                                    <form method="POST">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="drop">
+                                        <input type="hidden" name="course_id" value="{{ enrollment.id }}">
+                                        <button type="submit" class="btn btn-danger" style="padding:0.4rem 0.8rem;font-size:0.85rem;">
+                                            <i class="fas fa-trash-alt"></i> إسقاط
+                                        </button>
+                                    </form>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div style="text-align:center;padding:4rem 2rem;color:var(--text-muted);">
+                                <i class="fas fa-book-reader" style="font-size:3rem;margin-bottom:1rem;opacity:0.4;"></i>
+                                <p>لم تسجل أي مقرر دراسي حتى الآن.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+</html>
