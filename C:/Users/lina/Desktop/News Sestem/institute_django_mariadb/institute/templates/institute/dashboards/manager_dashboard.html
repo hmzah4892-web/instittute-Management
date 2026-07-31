@@ -1,0 +1,480 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم الإدارة العليا - نظام إدارة المعهد</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* ── Logo ── */
+        .sidebar-logo {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        .sidebar-logo-img {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid rgba(255,255,255,0.15);
+            box-shadow: 0 4px 15px rgba(79,70,229,0.4);
+            transition: all 0.3s ease;
+        }
+        /* Ensure responsive images */
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        .sidebar-logo-img:hover {
+            transform: scale(1.05);
+            border-color: rgba(79,70,229,0.6);
+            box-shadow: 0 6px 20px rgba(79,70,229,0.6);
+        }
+
+        /* ── Manager Dashboard Extras ── */
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .kpi-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: var(--trans);
+            box-shadow: var(--card-shadow);
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 4px;
+        }
+        .kpi-card:nth-child(1)::before { background: linear-gradient(90deg, #4F46E5, #818CF8); }
+        .kpi-card:nth-child(2)::before { background: linear-gradient(90deg, #10B981, #34D399); }
+        .kpi-card:nth-child(3)::before { background: linear-gradient(90deg, #EC4899, #F472B6); }
+        .kpi-card:nth-child(4)::before { background: linear-gradient(90deg, #F59E0B, #FBBF24); }
+        .kpi-card:nth-child(5)::before { background: linear-gradient(90deg, #3B82F6, #60A5FA); }
+        .kpi-card:nth-child(6)::before { background: linear-gradient(90deg, #EF4444, #F87171); }
+        .kpi-card:nth-child(7)::before { background: linear-gradient(90deg, #8B5CF6, #A78BFA); }
+        .kpi-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
+        .kpi-info h4 { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.25rem; }
+        .kpi-info p { font-size: 2rem; font-weight: 800; margin: 0; background: linear-gradient(to right, #fff, #94A3B8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .kpi-icon {
+            width: 55px; height: 55px;
+            border-radius: 1rem;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; color: #fff;
+        }
+        .kpi-icon.blue { background: linear-gradient(135deg, #4F46E5, #818CF8); box-shadow: 0 6px 15px rgba(79,70,229,0.4); }
+        .kpi-icon.green { background: linear-gradient(135deg, #10B981, #34D399); box-shadow: 0 6px 15px rgba(16,185,129,0.4); }
+        .kpi-icon.pink { background: linear-gradient(135deg, #EC4899, #F472B6); box-shadow: 0 6px 15px rgba(236,72,153,0.4); }
+        .kpi-icon.yellow { background: linear-gradient(135deg, #F59E0B, #FBBF24); box-shadow: 0 6px 15px rgba(245,158,11,0.4); }
+        .kpi-icon.sky { background: linear-gradient(135deg, #3B82F6, #60A5FA); box-shadow: 0 6px 15px rgba(59,130,246,0.4); }
+        .kpi-icon.red { background: linear-gradient(135deg, #EF4444, #F87171); box-shadow: 0 6px 15px rgba(239,68,68,0.4); }
+        .kpi-icon.purple { background: linear-gradient(135deg, #8B5CF6, #A78BFA); box-shadow: 0 6px 15px rgba(139,92,246,0.4); }
+
+        .charts-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .chart-box {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+        }
+        .chart-box h3 {
+            font-size: 1rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .alerts-section {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+        }
+        .alerts-section h3 {
+            font-size: 1rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        .alert-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.85rem 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 0.5rem;
+            animation: slideDown 0.5s ease-out;
+        }
+        .alert-item.warning { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2); color: #FBBF24; }
+        .alert-item.success { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #6EE7B7; }
+        .alert-item i { font-size: 1.2rem; }
+        .no-alerts { color: var(--text-muted); text-align: center; padding: 2rem; }
+
+        @media (max-width: 768px) {
+            .charts-row { grid-template-columns: 1fr; }
+            .dashboard-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 480px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <img src="{% static 'images/logo.jpg' %}" alt="شعار المعهد" class="sidebar-logo-img" onerror="this.style.display='none'">
+                </div>
+                <h3>نظام المعهد</h3>
+            </div>
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="{% url 'dashboard' %}" class="active"><i class="fas fa-home"></i> الرئيسية</a>
+                </li>
+                <li>
+                    <a href="{% url 'manager_users' %}"><i class="fas fa-users-cog"></i> إدارة الموظفين</a>
+                </li>
+                <li>
+                    <a href="{% url 'manager_departments' %}"><i class="fas fa-building"></i> إدارة الأقسام</a>
+                </li>
+                <li>
+                    <a href="{% url 'finance_expenses' %}"><i class="fas fa-wallet"></i> المصروفات والمالية</a>
+                </li>
+                <li>
+                    <a href="{% url 'document_archive' %}"><i class="fas fa-archive"></i> الأرشيف الرقمي (EDMS)</a>
+                </li>
+                <li>
+                    <a href="{% url 'messages' %}" ><i class="fas fa-envelope"></i> الرسائل</a>
+                </li>
+                <li>
+                    <a href="{% url 'logout' %}" class="text-danger"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Topbar -->
+            <header class="topbar">
+                <div class="topbar-title" style="display:flex; align-items:center; gap:1.5rem; width: 100%;">
+                    <h4><i class="fas fa-chart-line" style="margin-left:0.5rem;color:var(--primary);"></i> لوحة تحكم الإدارة العليا</h4>
+                    <div class="search-container" style="flex-grow:1; max-width:400px; position:relative; margin-right: 2rem;">
+                        <input type="text" id="globalSearchInput" placeholder="البحث السريع في النظام (اضغط Enter للبحث)..." style="width:100%; padding:0.5rem 1rem; border-radius:2rem; border:1px solid var(--card-border); background:rgba(255,255,255,0.05); color:#fff; font-family:'Cairo'; font-size: 0.9rem;">
+                        <i class="fas fa-search" style="position:absolute; left:1rem; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
+                    </div>
+                </div>
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i> {{ user.get_full_name|default:user.username }} ({{ user.get_role_display }})
+                </div>
+            </header>
+
+            <main class="content">
+                <!-- KPI Cards -->
+                <div class="dashboard-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-info">
+                            <h4>إجمالي المستخدمين</h4>
+                            <p>{{ total_users|default:"0" }}</p>
+                        </div>
+                        <div class="kpi-icon blue"><i class="fas fa-users"></i></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-info">
+                            <h4>الطلاب</h4>
+                            <p>{{ total_students|default:"0" }}</p>
+                        </div>
+                        <div class="kpi-icon green"><i class="fas fa-user-graduate"></i></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-info">
+                            <h4>المدرسين</h4>
+                            <p>{{ total_faculty|default:"0" }}</p>
+                        </div>
+                        <div class="kpi-icon pink"><i class="fas fa-chalkboard-teacher"></i></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-info">
+                            <h4>المقررات</h4>
+                            <p>{{ total_courses|default:"0" }}</p>
+                        </div>
+                        <div class="kpi-icon yellow"><i class="fas fa-book"></i></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-info">
+                            <h4>إجمالي الإيرادات</h4>
+                            <p>{{ paid_amount|default:"0" }} YER</p>
+                        </div>
+                        <div class="kpi-icon sky"><i class="fas fa-file-invoice-dollar"></i></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-info">
+                            <h4>المصروفات</h4>
+                            <p>{{ total_expenses|default:"0" }} YER</p>
+                        </div>
+                        <div class="kpi-icon red"><i class="fas fa-wallet"></i></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-info">
+                            <h4>صافي الأرباح (الجرد)</h4>
+                            <p>{{ net_profit|default:"0" }} YER</p>
+                        </div>
+                        <div class="kpi-icon purple"><i class="fas fa-chart-line"></i></div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="charts-row">
+                    <div class="chart-box">
+                        <h3><i class="fas fa-chart-bar" style="margin-left:0.5rem;color:var(--primary);"></i> مؤشرات الأداء</h3>
+                        <canvas id="kpiChart"></canvas>
+                    </div>
+                    <div class="chart-box">
+                        <h3><i class="fas fa-chart-pie" style="margin-left:0.5rem;color:var(--secondary);"></i> الوضع المالي</h3>
+                        <canvas id="financeChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Early Warning Alerts -->
+                <div class="alerts-section">
+                    <h3><i class="fas fa-bell" style="margin-left:0.5rem;color:var(--warning);"></i> إشعارات الإنذار المبكر</h3>
+                    {% if unpaid_amount and unpaid_amount > 0 %}
+                        <div class="alert-item warning">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <span>تنبيه: هناك مبالغ غير مدفوعة بقيمة <strong>{{ unpaid_amount }}</strong></span>
+                        </div>
+                    {% endif %}
+                    {% if total_faculty == 0 %}
+                        <div class="alert-item warning">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <span>لا يوجد مدرسين مسجلين في النظام حالياً</span>
+                        </div>
+                    {% endif %}
+                    {% if total_students == 0 %}
+                        <div class="alert-item warning">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <span>لا يوجد طلاب مسجلين في النظام حالياً</span>
+                        </div>
+                    {% endif %}
+                    {% if unpaid_amount == 0 and total_faculty > 0 and total_students > 0 %}
+                        <div class="alert-item success">
+                            <i class="fas fa-check-circle"></i>
+                            <span>كل شيء على ما يرام! لا توجد تنبيهات حالياً</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // ── KPI Bar Chart ──
+        const kpiCtx = document.getElementById('kpiChart').getContext('2d');
+        new Chart(kpiCtx, {
+            type: 'bar',
+            data: {
+                labels: ['المستخدمين', 'الطلاب', 'المدرسين', 'المقررات', 'الفواتير'],
+                datasets: [{
+                    label: 'العدد',
+                    data: [
+                        {{ total_users|default:"0" }},
+                        {{ total_students|default:"0" }},
+                        {{ total_faculty|default:"0" }},
+                        {{ total_courses|default:"0" }},
+                        {{ total_invoices|default:"0" }}
+                    ],
+                    backgroundColor: [
+                        'rgba(79,70,229,0.7)',
+                        'rgba(16,185,129,0.7)',
+                        'rgba(236,72,153,0.7)',
+                        'rgba(245,158,11,0.7)',
+                        'rgba(59,130,246,0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(79,70,229,1)',
+                        'rgba(16,185,129,1)',
+                        'rgba(236,72,153,1)',
+                        'rgba(245,158,11,1)',
+                        'rgba(59,130,246,1)'
+                    ],
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#94A3B8', font: { family: 'Cairo' } },
+                        grid: { color: 'rgba(255,255,255,0.05)' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: { color: '#94A3B8', font: { family: 'Cairo' } },
+                        grid: { color: 'rgba(255,255,255,0.05)' }
+                    }
+                }
+            }
+        });
+
+        // ── Finance Doughnut Chart ──
+        const finCtx = document.getElementById('financeChart').getContext('2d');
+        new Chart(finCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['المدفوع', 'المتبقي', 'المصروفات'],
+                datasets: [{
+                    data: [{{ paid_amount|default:"0" }}, {{ unpaid_amount|default:"0" }}, {{ total_expenses|default:"0" }}],
+                    backgroundColor: ['rgba(16,185,129,0.8)', 'rgba(239,68,68,0.8)', 'rgba(245,158,11,0.8)'],
+                    borderColor: ['rgba(16,185,129,1)', 'rgba(239,68,68,1)', 'rgba(245,158,11,1)'],
+                    borderWidth: 2,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#94A3B8', font: { family: 'Cairo', size: 13 }, padding: 20 }
+                    }
+                }
+            }
+        });
+
+        // ── AJAX Global Search ──
+        const globalSearchInput = document.getElementById('globalSearchInput');
+        const searchOverlay = document.getElementById('searchOverlay');
+        const closeSearchBtn = document.getElementById('closeSearchBtn');
+        const searchResults = document.getElementById('searchResults');
+
+        globalSearchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const query = this.value.trim();
+                if (query) {
+                    searchOverlay.style.display = 'block';
+                    fetchSearchResults(query);
+                }
+            }
+        });
+
+        closeSearchBtn.addEventListener('click', () => {
+            searchOverlay.style.display = 'none';
+        });
+
+        function fetchSearchResults(query) {
+            searchResults.innerHTML = '<div style="text-align:center; padding:2rem;"><i class="fas fa-spinner fa-spin" style="font-size:2rem;"></i> جاري البحث...</div>';
+            
+            fetch(`/manager/search/?q=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(data => {
+                    let html = '';
+                    
+                    // Students
+                    if (data.students && data.students.length > 0) {
+                        html += `<div><h4 style="color:#10B981; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.5rem; margin-bottom:0.5rem;"><i class="fas fa-user-graduate"></i> الطلاب (${data.students.length})</h4><table style="width:100%; border-collapse:collapse; margin-bottom:1.5rem; text-align:right;">`;
+                        html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.1); color:#94A3B8;"><th style="padding:0.5rem;">اسم الطالب</th><th style="padding:0.5rem;">التخصص</th><th style="padding:0.5rem;">المستوى</th><th style="padding:0.5rem;">الهاتف</th></tr>`;
+                        data.students.forEach(s => {
+                            html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);"><td style="padding:0.5rem;">${s.name}</td><td style="padding:0.5rem;">${s.specialty}</td><td style="padding:0.5rem;">${s.level}</td><td style="padding:0.5rem;">${s.phone}</td></tr>`;
+                        });
+                        html += '</table></div>';
+                    }
+                    
+                    // Employees
+                    if (data.employees && data.employees.length > 0) {
+                        html += `<div><h4 style="color:#3B82F6; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.5rem; margin-bottom:0.5rem;"><i class="fas fa-user-tie"></i> الموظفين الإداريين (${data.employees.length})</h4><table style="width:100%; border-collapse:collapse; margin-bottom:1.5rem; text-align:right;">`;
+                        html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.1); color:#94A3B8;"><th style="padding:0.5rem;">الاسم</th><th style="padding:0.5rem;">المهنة</th><th style="padding:0.5rem;">الإدارة</th></tr>`;
+                        data.employees.forEach(e => {
+                            html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);"><td style="padding:0.5rem;">${e.name}</td><td style="padding:0.5rem;">${e.job_title}</td><td style="padding:0.5rem;">${e.admin_name}</td></tr>`;
+                        });
+                        html += '</table></div>';
+                    }
+                    
+                    // Teachers
+                    if (data.teachers && data.teachers.length > 0) {
+                        html += `<div><h4 style="color:#EC4899; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.5rem; margin-bottom:0.5rem;"><i class="fas fa-chalkboard-teacher"></i> المدرسين (${data.teachers.length})</h4><table style="width:100%; border-collapse:collapse; margin-bottom:1.5rem; text-align:right;">`;
+                        html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.1); color:#94A3B8;"><th style="padding:0.5rem;">الاسم</th><th style="padding:0.5rem;">التخصص</th><th style="padding:0.5rem;">المؤهل العلمي</th></tr>`;
+                        data.teachers.forEach(t => {
+                            html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);"><td style="padding:0.5rem;">${t.name}</td><td style="padding:0.5rem;">${t.specialty}</td><td style="padding:0.5rem;">${t.qualification}</td></tr>`;
+                        });
+                        html += '</table></div>';
+                    }
+                    
+                    // Finances
+                    if (data.finances && data.finances.length > 0) {
+                        html += `<div><h4 style="color:#8B5CF6; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.5rem; margin-bottom:0.5rem;"><i class="fas fa-coins"></i> حسابات رسوم الطلاب (${data.finances.length})</h4><table style="width:100%; border-collapse:collapse; margin-bottom:1.5rem; text-align:right;">`;
+                        html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.1); color:#94A3B8;"><th style="padding:0.5rem;">الطالب</th><th style="padding:0.5rem;">الرسوم الكلية</th><th style="padding:0.5rem;">المدفوع</th><th style="padding:0.5rem;">المتبقي</th></tr>`;
+                        data.finances.forEach(f => {
+                            html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);"><td style="padding:0.5rem;">${f.student_name}</td><td style="padding:0.5rem;">${f.total_fees} ريال</td><td style="padding:0.5rem;">${f.paid} ريال</td><td style="padding:0.5rem;">${f.remaining} ريال</td></tr>`;
+                        });
+                        html += '</table></div>';
+                    }
+                    
+                    // Expenses
+                    if (data.expenses && data.expenses.length > 0) {
+                        html += `<div><h4 style="color:#F59E0B; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.5rem; margin-bottom:0.5rem;"><i class="fas fa-wallet"></i> المصروفات والمسحوبات (${data.expenses.length})</h4><table style="width:100%; border-collapse:collapse; margin-bottom:1.5rem; text-align:right;">`;
+                        html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.1); color:#94A3B8;"><th style="padding:0.5rem;">نوع المصروف</th><th style="padding:0.5rem;">المبلغ</th><th style="padding:0.5rem;">التاريخ</th><th style="padding:0.5rem;">التفاصيل</th></tr>`;
+                        data.expenses.forEach(e => {
+                            html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);"><td style="padding:0.5rem;">${e.type}</td><td style="padding:0.5rem;">${e.amount} ريال</td><td style="padding:0.5rem;">${e.date}</td><td style="padding:0.5rem;">${e.description}</td></tr>`;
+                        });
+                        html += '</table></div>';
+                    }
+
+                    if (!html) {
+                        searchResults.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-muted);"><i class="fas fa-search-minus" style="font-size:2rem; margin-bottom:1rem;"></i><br>عذراً، لم يتم العثور على أي نتائج تطابق استفسارك.</div>';
+                    } else {
+                        searchResults.innerHTML = html;
+                    }
+                })
+                .catch(err => {
+                    searchResults.innerHTML = '<div style="text-align:center; padding:2rem; color:#EF4444;"><i class="fas fa-exclamation-triangle" style="font-size:2rem; margin-bottom:1rem;"></i><br>حدث خطأ أثناء إجراء عملية البحث.</div>';
+                });
+        }
+    </script>
+
+    <!-- Global Search Overlay Modal -->
+    <div id="searchOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:9999; padding:2rem; overflow-y:auto;">
+        <div style="max-width:1000px; margin:2rem auto; background:var(--card-bg); border:1px solid var(--card-border); border-radius:1rem; padding:2rem; position:relative; box-shadow:0 20px 50px rgba(0,0,0,0.5);">
+            <button id="closeSearchBtn" style="position:absolute; top:1.5rem; left:1.5rem; background:none; border:none; color:#fff; font-size:1.5rem; cursor:pointer;"><i class="fas fa-times"></i></button>
+            <h3 style="margin-bottom:1.5rem; display:flex; align-items:center; gap:0.5rem; color:#fff; font-family:'Cairo';"><i class="fas fa-search text-primary"></i> بوابة الاستعلام العام للمدير</h3>
+            <div id="searchResults" style="display:flex; flex-direction:column; gap:1.5rem; margin-top:1.5rem; color:#fff; font-family:'Cairo';">
+                <!-- Results will go here via AJAX -->
+            </div>
+        </div>
+    </div>
+</body>
+</html>
