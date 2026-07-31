@@ -1,0 +1,215 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة المصروفات - نظام المعهد</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .kpi-card { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--card-border); border-radius: 1rem; padding: 1.5rem; display: flex; align-items: center; justify-content: space-between; transition: var(--trans); box-shadow: var(--card-shadow); position: relative; overflow: hidden; }
+        .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; }
+        .kpi-card:nth-child(1)::before { background: linear-gradient(90deg, #EC4899, #F472B6); }
+        .kpi-card:nth-child(2)::before { background: linear-gradient(90deg, #4F46E5, #818CF8); }
+        .kpi-card:nth-child(3)::before { background: linear-gradient(90deg, #10B981, #34D399); }
+        .kpi-card:nth-child(4)::before { background: linear-gradient(90deg, #F59E0B, #FBBF24); }
+        .kpi-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
+        .kpi-info h4 { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.25rem; }
+        .kpi-info p { font-size: 1.6rem; font-weight: 800; margin: 0; background: linear-gradient(to right, #fff, #94A3B8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .kpi-icon { width: 55px; height: 55px; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #fff; }
+        .kpi-icon.blue { background: linear-gradient(135deg, #4F46E5, #818CF8); box-shadow: 0 6px 15px rgba(79,70,229,0.4); }
+        .kpi-icon.green { background: linear-gradient(135deg, #10B981, #34D399); box-shadow: 0 6px 15px rgba(16,185,129,0.4); }
+        .kpi-icon.pink { background: linear-gradient(135deg, #EC4899, #F472B6); box-shadow: 0 6px 15px rgba(236,72,153,0.4); }
+        .kpi-icon.yellow { background: linear-gradient(135deg, #F59E0B, #FBBF24); box-shadow: 0 6px 15px rgba(245,158,11,0.4); }
+
+        .finance-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
+        .card-box { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--card-border); border-radius: 1rem; padding: 1.5rem; box-shadow: var(--card-shadow); }
+        .card-box h3 { font-size: 1.1rem; color: #fff; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; }
+        
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid var(--card-border);
+            background: rgba(255,255,255,0.05); color: #fff; font-family: 'Cairo';
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none; border-color: var(--primary);
+        }
+        
+        .btn-submit {
+            width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: none;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #fff; font-family: 'Cairo'; font-weight: 600; cursor: pointer; transition: var(--trans);
+        }
+        .btn-submit:hover { opacity: 0.9; transform: translateY(-2px); }
+
+        .table-responsive { overflow-x: auto; }
+        .table { width: 100%; border-collapse: collapse; text-align: right; }
+        .table th, .table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--card-border); }
+        .table th { color: var(--text-muted); font-size: 0.85rem; font-weight: 600; }
+        .table td { color: #fff; font-size: 0.9rem; }
+        
+        .badge { padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600; }
+        .badge.rent1 { background: rgba(79,70,229,0.15); color: #818CF8; border: 1px solid rgba(79,70,229,0.3); }
+        .badge.rent2 { background: rgba(16,185,129,0.15); color: #34D399; border: 1px solid rgba(16,185,129,0.3); }
+        .badge.withdrawn { background: rgba(245,158,11,0.15); color: #FBBF24; border: 1px solid rgba(245,158,11,0.3); }
+        .badge.general { background: rgba(156,163,175,0.15); color: #D1D5DB; border: 1px solid rgba(156,163,175,0.3); }
+
+        @media (max-width: 1024px) {
+            .finance-layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h3>نظام المعهد</h3>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="{% url 'dashboard' %}"><i class="fas fa-home"></i> الرئيسية</a></li>
+                {% if user.role == 'manager' %}
+                <li><a href="{% url 'manager_users' %}"><i class="fas fa-users-cog"></i> إدارة الموظفين</a></li>
+                <li><a href="{% url 'manager_departments' %}"><i class="fas fa-building"></i> إدارة الأقسام</a></li>
+                {% else %}
+                <li><a href="{% url 'finance_invoices' %}"><i class="fas fa-file-invoice-dollar"></i> الفواتير</a></li>
+                {% endif %}
+                <li><a href="{% url 'finance_expenses' %}" class="active"><i class="fas fa-wallet"></i> المصروفات</a></li>
+                {% if user.role == 'manager' %}
+                <li><a href="{% url 'document_archive' %}"><i class="fas fa-archive"></i> الأرشيف الرقمي</a></li>
+                {% endif %}
+                <li><a href="{% url 'messages' %}"><i class="fas fa-envelope"></i> الرسائل</a></li>
+                <li><a href="{% url 'logout' %}" style="color:#F87171;margin-top:2rem;"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header class="topbar">
+                <div class="topbar-title">
+                    <h4><i class="fas fa-wallet" style="margin-left:0.5rem;color:var(--primary);"></i> إدارة المصروفات والسحب اليومي</h4>
+                </div>
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i> {{ user.get_full_name|default:user.username }} ({{ user.get_role_display }})
+                </div>
+            </header>
+
+            <main class="content">
+                <!-- Messages -->
+                {% if messages %}
+                    {% for message in messages %}
+                        <div style="padding:1rem; border-radius:0.5rem; margin-bottom:1.5rem; background:{% if message.tags == 'success' %}rgba(16,185,129,0.15); color:#6EE7B7; border:1px solid rgba(16,185,129,0.3){% else %}rgba(239,68,68,0.15); color:#FCA5A5; border:1px solid rgba(239,68,68,0.3){% endif %}; font-family:'Cairo';">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <!-- KPI Cards -->
+                <div class="dashboard-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-info">
+                            <h4>إجمالي المصروفات</h4>
+                            <p>{{ total_expenses }} ريال</p>
+                        </div>
+                        <div class="kpi-icon pink"><i class="fas fa-calculator"></i></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-info">
+                            <h4>إيجار الطابق الأول (إداري)</h4>
+                            <p>{{ floor1_rent }} ريال</p>
+                        </div>
+                        <div class="kpi-icon blue"><i class="fas fa-building"></i></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-info">
+                            <h4>إيجار الطابق الثاني (طبي)</h4>
+                            <p>{{ floor2_rent }} ريال</p>
+                        </div>
+                        <div class="kpi-icon green"><i class="fas fa-hospital"></i></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-info">
+                            <h4>السحب اليومي للموظفين</h4>
+                            <p>{{ daily_withdrawn }} ريال</p>
+                        </div>
+                        <div class="kpi-icon yellow"><i class="fas fa-money-bill-wave"></i></div>
+                    </div>
+                </div>
+
+                <!-- Layout -->
+                <div class="finance-layout">
+                    <!-- Expenses List -->
+                    <div class="card-box">
+                        <h3><i class="fas fa-list-ul" style="color:var(--primary)"></i> سجل المصروفات الأخير</h3>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>البيان / التفاصيل</th>
+                                        <th>المبلغ</th>
+                                        <th>نوع المصروف</th>
+                                        <th>المستلم</th>
+                                        <th>التاريخ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for expense in expenses %}
+                                        <tr>
+                                            <td>{{ expense.description }}</td>
+                                            <td style="font-weight:700;">{{ expense.amount }} ريال</td>
+                                            <td>
+                                                <span class="badge {% if expense.expense_type == 'rent_floor1' %}rent1{% elif expense.expense_type == 'rent_floor2' %}rent2{% elif expense.expense_type == 'daily_withdrawal' %}withdrawn{% else %}general{% endif %}">
+                                                    {{ expense.get_expense_type_display }}
+                                                </span>
+                                            </td>
+                                            <td>{{ expense.recipient|default:"-" }}</td>
+                                            <td>{{ expense.date|date:"Y-m-d" }}</td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr>
+                                            <td colspan="5" style="text-align:center; color:var(--text-muted); padding:2rem;">لا توجد مصروفات مسجلة حالياً.</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Add Expense Form -->
+                    <div class="card-box">
+                        <h3><i class="fas fa-plus-circle" style="color:var(--secondary)"></i> تسجيل مصروف جديد</h3>
+                        <form method="POST" action="{% url 'finance_expenses' %}">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                <label for="expense_type">نوع المصروف</label>
+                                <select name="expense_type" id="expense_type" required>
+                                    {% for code, label in expense_types %}
+                                        <option value="{{ code }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="amount">المبلغ (ريال يمني)</label>
+                                <input type="number" name="amount" id="amount" step="0.01" min="0.01" placeholder="أدخل قيمة المبلغ..." required>
+                            </div>
+                            <div class="form-group">
+                                <label for="recipient">اسم المستلم (اختياري)</label>
+                                <input type="text" name="recipient" id="recipient" placeholder="مثال: مالك المبنى، الموظف أحمد...">
+                            </div>
+                            <div class="form-group">
+                                <label for="description">البيان / التفاصيل</label>
+                                <textarea name="description" id="description" rows="4" placeholder="اكتب بياناً تفصيلياً لسبب الصرف..." required></textarea>
+                            </div>
+                            <button type="submit" class="btn-submit"><i class="fas fa-check"></i> حفظ وتسجيل المصروف</button>
+                        </form>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+</html>
