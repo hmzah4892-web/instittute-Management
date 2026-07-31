@@ -1,0 +1,97 @@
+{% extends 'institute/dashboards/base_dashboard.html' %}
+{% block title %}رئيس القسم{% endblock %}
+{% block page_title %}لوحة تحكم رئيس القسم الأكاديمي{% endblock %}
+
+{% block content %}
+{% if section %}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card shadow-sm border-0" style="border-radius: 15px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white;">
+            <div class="card-body py-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="mb-1"><i class="fas fa-university"></i> قسم {{ section.sec_name }}</h4>
+                        <p class="mb-0 text-white-50">نظرة عامة على القسم وتخصصاته والمقررات المندرجة تحته.</p>
+                    </div>
+                    <div class="text-end">
+                        <h2 class="mb-0 fw-bold">{{ total_students }}</h2>
+                        <span class="text-white-50">إجمالي الطلاب</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- التخصصات والمقررات -->
+    <div class="col-md-8 mb-4">
+        <div class="card shadow-sm border-0 h-100" style="border-radius: 15px;">
+            <div class="card-header bg-white border-0 pt-4 pb-0">
+                <h5 class="mb-0 text-primary"><i class="fas fa-book-open"></i> التخصصات والمقررات الأكاديمية</h5>
+            </div>
+            <div class="card-body">
+                <div class="accordion accordion-flush" id="accordionSpecialties">
+                    {% for spec in specialties %}
+                    <div class="accordion-item border-0 border-bottom mb-2">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed bg-light rounded" type="button" data-bs-toggle="collapse" data-bs-target="#spec-{{ spec.spec_no }}">
+                                <strong>تخصص: {{ spec.spec_name }}</strong> (المستوى: {{ spec.level.lev_name }})
+                            </button>
+                        </h2>
+                        <div id="spec-{{ spec.spec_no }}" class="accordion-collapse collapse" data-bs-parent="#accordionSpecialties">
+                            <div class="accordion-body p-3">
+                                <ul class="list-group list-group-flush">
+                                    {% for sub in subjects %}
+                                        {% if sub.specialty == spec %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                                            <div>
+                                                <i class="fas fa-bookmark text-muted me-2"></i> {{ sub.sub_name }}
+                                                <br><small class="text-muted ms-4">الساعات: {{ sub.hours }}</small>
+                                            </div>
+                                        </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-center text-muted py-3">لا توجد تخصصات مسجلة لهذا القسم.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- كادر التدريس -->
+    <div class="col-md-4 mb-4">
+        <div class="card shadow-sm border-0 h-100" style="border-radius: 15px;">
+            <div class="card-header bg-white border-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-success"><i class="fas fa-chalkboard-teacher"></i> كادر التدريس بالقسم</h5>
+                <span class="badge bg-success rounded-pill">{{ teachers.count }} مدرس</span>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush mt-3">
+                    {% for teacher in teachers %}
+                    <li class="list-group-item border-0 py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-light rounded-circle d-flex justify-content-center align-items-center" style="width: 45px; height: 45px; margin-left: 15px;">
+                                <i class="fas fa-user-tie text-success"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 fw-bold">{{ teacher.full_name }}</h6>
+                                <p class="mb-0 small text-muted">{{ teacher.specialty.spec_name }} | عقد: {{ teacher.get_contract_type_display }}</p>
+                            </div>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-center text-muted border-0 py-4">لا يوجد مدرسين مسجلين في تخصصات القسم.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
