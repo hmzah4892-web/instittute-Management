@@ -1,0 +1,141 @@
+{% extends 'institute/dashboards/base_dashboard.html' %}
+{% block title %}الإشعارات والتعميمات{% endblock %}
+{% block page_title %}نظام الإشعارات والتواصل الداخلي{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary rounded-pill mb-3">
+            <i class="fas fa-arrow-right"></i> العودة للرئيسية
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- قائمة الإشعارات الواردة -->
+    <div class="col-md-8 mb-4">
+        <div class="card shadow-sm border-0" style="border-radius: 15px;">
+            <div class="card-header bg-white border-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-primary"><i class="fas fa-bell"></i> صندوق الوارد ({{ notifications.count }})</h5>
+                <form method="post" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="mark_all_read">
+                    <button type="submit" class="btn btn-sm btn-light rounded-pill text-muted">تحديد الكل كمقروء</button>
+                </form>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for notif in notifications %}
+                    <div class="list-group-item border-0 border-bottom py-3 {% if not notif.is_read %}bg-light{% endif %}" id="notif-{{ notif.notif_no }}">
+                        <div class="d-flex w-100 justify-content-between align-items-center mb-1">
+                            <h6 class="mb-0 fw-bold">
+                                {% if notif.notif_type == 'alert' %}<i class="fas fa-exclamation-triangle text-danger me-2"></i>
+                                {% elif notif.notif_type == 'warning' %}<i class="fas fa-exclamation-circle text-warning me-2"></i>
+                                {% elif notif.is_broadcast %}<i class="fas fa-bullhorn text-info me-2"></i>
+                                {% else %}<i class="fas fa-info-circle text-primary me-2"></i>{% endif %}
+                                {{ notif.title }}
+                                {% if notif.is_broadcast %}<span class="badge bg-info ms-2">تعميم عام</span>{% endif %}
+                                {% if notif.target_role %}<span class="badge bg-secondary ms-2">مخصص لـ: {{ notif.get_target_role_display }}</span>{% endif %}
+                            </h6>
+                            <small class="text-muted">{{ notif.created_at|date:"d M Y, h:i A" }}</small>
+                        </div>
+                        <p class="mb-2 mt-2" style="white-space: pre-wrap;">{{ notif.body }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">المرسل: {{ notif.sender.full_name|default:"النظام" }}</small>
+                            {% if not notif.is_read %}
+                            <button class="btn btn-sm btn-outline-success rounded-pill" onclick="markRead('{{ notif.notif_no }}')">
+                                <i class="fas fa-check"></i> تعليم كمقروء
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-bell-slash fa-3x mb-3 text-light"></i>
+                        <h5>لا توجد إشعارات</h5>
+                        <p>لم تتلقَ أي إشعارات أو تعميمات بعد.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- إرسال تعميم (للإدارة فقط) -->
+    {% if user.role in 'manager,hr,admin' %}
+    <div class="col-md-4 mb-4">
+        <div class="card shadow-sm border-0 bg-light" style="border-radius: 15px;">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                <h5 class="mb-0 text-success"><i class="fas fa-paper-plane"></i> إرسال إشعار / تعميم</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="send">
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted">المستهدف</label>
+                        <select name="target" class="form-select border-0" required>
+                            <option value="all" class="fw-bold text-primary">جميع مستخدمي النظام (تعميم عام)</option>
+                            <optgroup label="حسب الدور/القسم">
+                                {% for r_code, r_name in roles %}
+                                <option value="role_{{ r_code }}">جميع الـ ({{ r_name }})</option>
+                                {% endfor %}
+                            </optgroup>
+                            <optgroup label="مستخدم محدد">
+                                {% for u in users %}
+                                <option value="{{ u.id }}">{{ u.full_name }} - {{ u.get_role_display }}</option>
+                                {% endfor %}
+                            </optgroup>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted">نوع الإشعار</label>
+                        <select name="notif_type" class="form-select border-0">
+                            {% for t_code, t_name in notif_types %}
+                            <option value="{{ t_code }}">{{ t_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted">عنوان الإشعار</label>
+                        <input type="text" name="title" class="form-control border-0" required>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label text-muted">النص والتفاصيل</label>
+                        <textarea name="body" class="form-control border-0" rows="5" required></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success rounded-pill w-100"><i class="fas fa-paper-plane"></i> إرسال الآن</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function markRead(notifId) {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const formData = new FormData();
+    formData.append('action', 'mark_read');
+    formData.append('notif_id', notifId);
+    formData.append('csrfmiddlewaretoken', csrfToken);
+
+    fetch(window.location.href, {
+        method: 'POST',
+        body: formData
+    }).then(response => {
+        if(response.ok) {
+            const el = document.getElementById('notif-' + notifId);
+            el.classList.remove('bg-light');
+            const btn = el.querySelector('button');
+            if(btn) btn.remove();
+        }
+    });
+}
+</script>
+{% endblock %}
