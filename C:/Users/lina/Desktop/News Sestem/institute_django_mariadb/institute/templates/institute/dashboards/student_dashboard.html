@@ -1,0 +1,224 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم الطالب - نظام إدارة المعهد</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .kpi-card { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--card-border); border-radius: 1rem; padding: 1.5rem; display: flex; align-items: center; justify-content: space-between; transition: var(--trans); box-shadow: var(--card-shadow); position: relative; overflow: hidden; }
+        .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; }
+        .kpi-card:nth-child(1)::before { background: linear-gradient(90deg, #4F46E5, #818CF8); }
+        .kpi-card:nth-child(2)::before { background: linear-gradient(90deg, #10B981, #34D399); }
+        .kpi-card:nth-child(3)::before { background: linear-gradient(90deg, #EC4899, #F472B6); }
+        .kpi-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
+        .kpi-info h4 { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.25rem; }
+        .kpi-info p { font-size: 2rem; font-weight: 800; margin: 0; background: linear-gradient(to right, #fff, #94A3B8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .kpi-icon { width: 55px; height: 55px; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #fff; }
+        .kpi-icon.blue { background: linear-gradient(135deg, #4F46E5, #818CF8); box-shadow: 0 6px 15px rgba(79,70,229,0.4); }
+        .kpi-icon.green { background: linear-gradient(135deg, #10B981, #34D399); box-shadow: 0 6px 15px rgba(16,185,129,0.4); }
+        .kpi-icon.red { background: linear-gradient(135deg, #EF4444, #F87171); box-shadow: 0 6px 15px rgba(239,68,68,0.4); }
+
+        .section-box { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--card-border); border-radius: 1rem; padding: 1.5rem; box-shadow: var(--card-shadow); margin-bottom: 1.5rem; }
+        .section-box h3 { font-size: 1.1rem; color: var(--text-main); margin-bottom: 1.25rem; font-weight: 700; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 0.75rem; }
+        
+        /* ── Profile Info Grid ── */
+        .profile-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .info-item {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .info-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+        .info-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        /* ── Invoices ── */
+        .invoice-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-radius: 0.75rem; margin-bottom: 0.5rem; background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); }
+        .invoice-item:hover { background: rgba(255,255,255,0.06); }
+        .invoice-details { display: flex; flex-direction: column; gap: 0.25rem; }
+        
+        .main-dashboard-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+        }
+        @media (max-width: 992px) {
+            .main-dashboard-layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h3>نظام المعهد</h3>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="{% url 'dashboard' %}" class="active"><i class="fas fa-home"></i> الرئيسية</a></li>
+                <!-- 🚫 إزالة صلاحية تسجيل المقررات للطالب 🚫 -->
+                <li><a href="{% url 'messages' %}"><i class="fas fa-envelope"></i> الرسائل</a></li>
+                <li><a href="{% url 'logout' %}" style="color:#F87171;margin-top:2rem;"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</a></li>
+            </ul>
+        </nav>
+        <div class="main-content">
+            <header class="topbar">
+                <div class="topbar-title">
+                    <h4><i class="fas fa-user-graduate" style="margin-left:0.5rem;color:var(--accent);"></i> البوابة الأكاديمية للطالب</h4>
+                </div>
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i> {{ user.get_full_name|default:user.username }} ({{ user.get_role_display }})
+                </div>
+            </header>
+            <main class="content">
+                <div class="dashboard-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-info">
+                            <h4>المقررات الدراسية</h4>
+                            <p>{{ enrollments.count|default:"0" }}</p>
+                        </div>
+                        <div class="kpi-icon blue"><i class="fas fa-book-open"></i></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-info">
+                            <h4>الساعات المعتمدة</h4>
+                            <p>{{ total_credits|default:"0" }}</p>
+                        </div>
+                        <div class="kpi-icon green"><i class="fas fa-clock"></i></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-info">
+                            <h4>المبالغ المستحقة</h4>
+                            <p>{{ unpaid_amount|default:"0" }} ريال</p>
+                        </div>
+                        <div class="kpi-icon red"><i class="fas fa-money-bill-wave"></i></div>
+                    </div>
+                </div>
+
+                <!-- Personal Info Section -->
+                <div class="section-box">
+                    <h3><i class="fas fa-id-card" style="margin-left:0.5rem;color:var(--primary);"></i> البيانات الشخصية والأكاديمية</h3>
+                    <div class="profile-info-grid">
+                        <div class="info-item">
+                            <div class="info-label">اسم الطالب</div>
+                            <div class="info-value">{{ user.get_full_name|default:user.username }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">التخصص</div>
+                            <div class="info-value">{{ profile.specialty.spec_name|default:"غير محدد" }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">المستوى الدراسي</div>
+                            <div class="info-value">{{ profile.level.lev_name|default:"غير محدد" }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">معدل الثانوية العامة</div>
+                            <div class="info-value">{{ profile.qualification|default:"غير مسجل" }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">تاريخ الالتحاق بالمعهد</div>
+                            <div class="info-value">{{ profile.enrollment_date|date:"Y-m-d" }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">هاتف الطالب</div>
+                            <div class="info-value">{{ user.phone|default:"غير مسجل" }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">هاتف ولي الأمر</div>
+                            <div class="info-value">{{ profile.parent_phone|default:"غير مسجل" }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="main-dashboard-layout">
+                    <!-- Academic Records -->
+                    <div class="section-box" style="height: fit-content;">
+                        <h3><i class="fas fa-graduation-cap" style="margin-left:0.5rem;color:var(--secondary);"></i> تفاصيل السجل الأكاديمي والدرجات</h3>
+                        {% if enrollments %}
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>المقرر</th>
+                                            <th style="text-align:center;">الحضور (10)</th>
+                                            <th style="text-align:center;">النشاط (10)</th>
+                                            <th style="text-align:center;">النصفي (20)</th>
+                                            <th style="text-align:center;">النهائي (60)</th>
+                                            <th style="text-align:center;">المجموع النهائي</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for e in enrollments %}
+                                        <tr>
+                                            <td><strong>{{ e.subject.sub_name }}</strong></td>
+                                            <td style="text-align:center;color:var(--text-muted);">{{ e.attendance_grade|floatformat:1 }}</td>
+                                            <td style="text-align:center;color:var(--text-muted);">{{ e.activity_grade|floatformat:1 }}</td>
+                                            <td style="text-align:center;color:var(--text-muted);">{{ e.midterm_grade|floatformat:1 }}</td>
+                                            <td style="text-align:center;color:var(--text-muted);">{{ e.final_grade|floatformat:1 }}</td>
+                                            <td style="text-align:center;">
+                                                {% if e.grade >= 50 %}
+                                                    <span class="badge badge-success">{{ e.grade|floatformat:2 }}</span>
+                                                {% else %}
+                                                    <span class="badge badge-danger">{{ e.grade|floatformat:2 }}</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <p style="color:var(--text-muted);text-align:center;padding:2rem;">لا توجد درجات أو مقررات مسجلة لك حالياً.</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Financial Invoices -->
+                    <div class="section-box" style="height: fit-content;">
+                        <h3><i class="fas fa-wallet" style="margin-left:0.5rem;color:var(--warning);"></i> الوضع المالي والرسوم</h3>
+                        {% if invoices %}
+                            {% for inv in invoices %}
+                            <div class="invoice-item">
+                                <div class="invoice-details">
+                                    <strong style="color:var(--text-main);">رسوم دراسية لتخصص {{ inv.specialty.spec_name|default:"عام" }}</strong>
+                                    <span style="font-size:0.85rem;color:var(--text-muted);">إجمالي الرسوم المستحقة: {{ inv.total_fees }} ريال</span>
+                                    <span style="font-size:0.85rem;color:var(--info);">إجمالي المدفوع: {{ inv.paid }} ريال</span>
+                                </div>
+                                <div>
+                                    {% if inv.remaining == 0 %}
+                                        <span class="badge badge-success" style="font-size:1rem;padding:0.5rem 1rem;">مسدد بالكامل <i class="fas fa-check-circle"></i></span>
+                                    {% else %}
+                                        <div style="display:flex;flex-direction:column;align-items:flex-end;">
+                                            <span class="badge badge-danger" style="font-size:1rem;padding:0.5rem 1rem;">متبقي: {{ inv.remaining }} ريال</span>
+                                            <span style="font-size:0.75rem;color:var(--warning);margin-top:0.25rem;">تاريخ الاستحقاق: {{ inv.due_date|date:"Y-m-d" }}</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p style="color:var(--text-muted);text-align:center;padding:2rem;">لا توجد سجلات مالية خاصة بك.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+</body>
+</html>
