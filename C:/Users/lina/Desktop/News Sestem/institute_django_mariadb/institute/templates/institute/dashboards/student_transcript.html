@@ -1,0 +1,143 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>كشف الدرجات الأكاديمي - نظام إدارة المعهد</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        .gpa-card {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.15), rgba(236, 72, 153, 0.1));
+            border: 1px solid rgba(79, 70, 229, 0.3);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+        }
+        .gpa-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--secondary);
+            background: linear-gradient(to right, #EC4899, #F472B6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .badge-pass {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34D399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .badge-fail {
+            background: rgba(239, 68, 68, 0.15);
+            color: #F87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h3>نظام المعهد</h3>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="{% url 'dashboard' %}"><i class="fas fa-home"></i> الرئيسية</a></li>
+                <li><a href="{% url 'student_transcript' %}" class="active"><i class="fas fa-file-alt"></i> كشف الدرجات</a></li>
+                <li><a href="{% url 'student_register' %}"><i class="fas fa-plus-circle"></i> التسجيل في مقرر</a></li>
+                <li><a href="{% url 'messages' %}"><i class="fas fa-envelope"></i> الرسائل</a></li>
+                <li><a href="{% url 'logout' %}" style="color:#F87171;margin-top:2rem;"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</a></li>
+            </ul>
+        </nav>
+        <div class="main-content">
+            <header class="topbar">
+                <div class="topbar-title">
+                    <h4><i class="fas fa-file-alt" style="margin-left:0.5rem;color:var(--secondary);"></i> كشف الدرجات الأكاديمي</h4>
+                </div>
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i> {{ user.get_full_name|default:user.username }} ({{ user.get_role_display }})
+                </div>
+            </header>
+            <main class="content">
+                
+                <!-- Summary / GPA Card -->
+                <div class="gpa-card">
+                    <div>
+                        <h2 style="font-size:1.3rem;margin:0 0 0.25rem 0;color:var(--text-main);">سجلك الأكاديمي العام</h2>
+                        <p style="color:var(--text-muted);margin:0;font-size:0.9rem;">يعرض هذا الكشف تفاصيل درجات الأنشطة والاختبارات التراكمية.</p>
+                    </div>
+                    <div style="text-align:left;">
+                        <span style="font-size:0.85rem;color:var(--text-muted);display:block;font-weight:600;">عدد المقررات المكتملة</span>
+                        <div class="gpa-value" style="font-size:2rem;text-align:left;">{{ enrollments|length }}</div>
+                    </div>
+                </div>
+
+                <!-- Transcript Table -->
+                <div class="card">
+                    <h3 style="font-size:1.1rem;margin-bottom:1.5rem;"><i class="fas fa-graduation-cap" style="color:var(--primary);margin-left:0.5rem;"></i> المقررات والدرجات التفصيلية</h3>
+                    
+                    {% if enrollments %}
+                        <div class="table-responsive">
+                            <table class="table" style="width:100%;">
+                                <thead>
+                                    <tr>
+                                        <th>كود المقرر</th>
+                                        <th>اسم المقرر الدراسي</th>
+                                        <th style="text-align:center;">الساعات</th>
+                                        <th style="text-align:center;">درجة الأنشطة (40)</th>
+                                        <th style="text-align:center;">درجة الاختبار (60)</th>
+                                        <th style="text-align:center;">الدرجة النهائية (100)</th>
+                                        <th style="text-align:center;">الحالة</th>
+                                        <th>ملاحظات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for e in enrollments %}
+                                    <tr>
+                                        <td><span class="badge-active">كود {{ e.course.code }}</span></td>
+                                        <td><strong style="color:var(--text-main);">{{ e.course.name }}</strong></td>
+                                        <td style="text-align:center;">{{ e.course.credits }}</td>
+                                        <td style="text-align:center;color:#818CF8;font-weight:bold;">{{ e.activity_grade }}</td>
+                                        <td style="text-align:center;color:#EC4899;font-weight:bold;">{{ e.exam_grade }}</td>
+                                        <td style="text-align:center;font-size:1.1rem;font-weight:800;color:#fff;">{{ e.grade }}</td>
+                                        <td style="text-align:center;">
+                                            {% if e.grade >= 50 %}
+                                                <span class="badge-pass"><i class="fas fa-check"></i> ناجح</span>
+                                            {% else %}
+                                                <span class="badge-fail"><i class="fas fa-times"></i> راسب</span>
+                                            {% endif %}
+                                        </td>
+                                        <td style="font-size:0.85rem;color:var(--warning);">
+                                            {% if e.edit_reason %}
+                                                <i class="fas fa-info-circle"></i> تم التعديل: {{ e.edit_reason }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p style="color:var(--text-muted);text-align:center;padding:3rem;">لا توجد درجات مرصودة لك حتى الآن.</p>
+                    {% endif %}
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+</html>
