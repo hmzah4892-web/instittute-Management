@@ -1,0 +1,166 @@
+{% extends 'institute/dashboards/base_dashboard.html' %}
+
+{% block title %}إدارة المستخدمين والموظفين{% endblock %}
+{% block page_title %}إدارة المستخدمين والموظفين{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3 style="margin: 0;"><i class="fas fa-users-cog" style="color:var(--primary); margin-left: 10px;"></i> سجل المستخدمين والموظفين</h3>
+        <button class="btn btn-primary" onclick="openModal('addUserModal')">
+            <i class="fas fa-plus"></i> إضافة مستخدم جديد
+        </button>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>اسم المستخدم</th>
+                    <th>الاسم الكامل</th>
+                    <th>البريد الإلكتروني</th>
+                    <th>الدور (الصلاحية)</th>
+                    <th>تاريخ الانضمام</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td style="font-weight: 600;">{{ u.username }}</td>
+                    <td>{{ u.get_full_name|default:"--" }}</td>
+                    <td>{{ u.email|default:"--" }}</td>
+                    <td>
+                        <span class="badge 
+                            {% if u.role == 'manager' %}badge-danger
+                            {% elif u.role == 'admin' %}badge-warning
+                            {% elif u.role == 'faculty' %}badge-primary
+                            {% elif u.role == 'student' %}badge-success
+                            {% else %}badge-info{% endif %}">
+                            {{ u.get_role_display }}
+                        </span>
+                    </td>
+                    <td>{{ u.date_joined|date:"Y-m-d" }}</td>
+                    <td>
+                        {% if u.id != request.user.id %}
+                        <button type="button" class="btn btn-warning" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; margin-left: 0.5rem;" 
+                                onclick="openEditModal('{{ u.id }}', '{{ u.username }}', '{{ u.get_full_name|escapejs }}', '{{ u.email }}', '{{ u.role }}')">
+                            <i class="fas fa-edit"></i> تعديل
+                        </button>
+                        <form method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="user_id" value="{{ u.id }}">
+                            <button type="submit" class="btn btn-danger" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" onclick="return confirm('هل أنت متأكد من حذف هذا المستخدم؟');">
+                                <i class="fas fa-trash"></i> حذف
+                            </button>
+                        </form>
+                        {% else %}
+                        <span style="color:var(--text-muted); font-size:0.85rem;">حسابك الحالي</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-muted);">لا يوجد مستخدمين مسجلين بعد.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="addUserModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">إضافة مستخدم جديد</h3>
+            <button type="button" class="modal-close" onclick="closeModal('addUserModal')">&times;</button>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add">
+            
+            <div class="form-group">
+                <label>اسم الدخول (Username) *</label>
+                <input type="text" name="username" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label>الاسم الكامل</label>
+                <input type="text" name="full_name" class="form-control">
+            </div>
+            
+            <div class="form-group">
+                <label>البريد الإلكتروني</label>
+                <input type="email" name="email" class="form-control">
+            </div>
+            
+            <div class="form-group">
+                <label>الدور الوظيفي / الصلاحية *</label>
+                <select name="role" class="form-control" required style="background: rgba(15,23,42,0.9); color:#fff;">
+                    {% for value, label in role_choices %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div style="margin-top: 1.5rem; text-align: left;">
+                <p style="font-size: 0.85rem; color: var(--text-muted); float: right; margin-top:0.5rem;">كلمة المرور الافتراضية: 123456</p>
+                <button type="button" class="btn" style="background: rgba(255,255,255,0.1); color:#fff;" onclick="closeModal('addUserModal')">إلغاء</button>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal التعديل -->
+<div class="modal-overlay" id="editUserModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">تعديل بيانات المستخدم: <span id="edit_username_display" style="color:var(--primary);"></span></h3>
+            <button type="button" class="modal-close" onclick="closeModal('editUserModal')">&times;</button>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="edit">
+            <input type="hidden" name="user_id" id="edit_user_id">
+            
+            <div class="form-group">
+                <label>الاسم الكامل</label>
+                <input type="text" name="full_name" id="edit_full_name" class="form-control">
+            </div>
+            
+            <div class="form-group">
+                <label>البريد الإلكتروني</label>
+                <input type="email" name="email" id="edit_email" class="form-control">
+            </div>
+            
+            <div class="form-group">
+                <label>الدور الوظيفي / الصلاحية *</label>
+                <select name="role" id="edit_role" class="form-control" required style="background: rgba(15,23,42,0.9); color:#fff;">
+                    {% for value, label in role_choices %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div style="margin-top: 1.5rem; text-align: left;">
+                <button type="button" class="btn" style="background: rgba(255,255,255,0.1); color:#fff;" onclick="closeModal('editUserModal')">إلغاء</button>
+                <button type="submit" class="btn btn-warning"><i class="fas fa-save"></i> حفظ التعديلات</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openEditModal(id, username, fullName, email, role) {
+        document.getElementById('edit_user_id').value = id;
+        document.getElementById('edit_username_display').textContent = username;
+        document.getElementById('edit_full_name').value = fullName;
+        document.getElementById('edit_email').value = email;
+        document.getElementById('edit_role').value = role;
+        openModal('editUserModal');
+    }
+</script>
+{% endblock %}
