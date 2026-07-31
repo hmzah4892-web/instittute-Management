@@ -1,0 +1,180 @@
+{% extends 'institute/dashboards/base_dashboard.html' %}
+{% block title %}محرك الرواتب{% endblock %}
+{% block page_title %}محرك الرواتب والكشوفات الشهرية{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <a href="{% url 'hr_dashboard' %}" class="btn btn-outline-secondary rounded-pill mb-3">
+            <i class="fas fa-arrow-right"></i> العودة للوحة الموارد البشرية
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow-sm border-0 bg-white" style="border-radius: 15px;">
+            <div class="card-body">
+                <form method="get" class="row align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label text-muted">الشهر</label>
+                        <select name="month" class="form-select border-0 bg-light rounded-pill">
+                            {% for m in months %}
+                            <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ m }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted">السنة</label>
+                        <select name="year" class="form-select border-0 bg-light rounded-pill">
+                            {% for y in years %}
+                            <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary rounded-pill w-100"><i class="fas fa-search"></i> عرض السجلات</button>
+                    </div>
+                    <div class="col-md-3 text-end">
+                        <button type="button" class="btn btn-success rounded-pill w-100" onclick="openModal('generateModal')"><i class="fas fa-cogs"></i> توليد الكشوفات</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ملخص الرواتب -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-center py-3" style="border-radius: 15px;">
+            <p class="text-muted mb-1">الراتب الأساسي الإجمالي</p>
+            <h4 class="text-primary mb-0">{{ summary.total_basic|floatformat:"0" }} <small>ر.ي</small></h4>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-center py-3" style="border-radius: 15px;">
+            <p class="text-muted mb-1">إجمالي مستحقات التدريس</p>
+            <h4 class="text-info mb-0">{{ summary.total_teaching_pay|floatformat:"0" }} <small>ر.ي</small></h4>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-center py-3" style="border-radius: 15px;">
+            <p class="text-muted mb-1">إجمالي خصومات الغياب</p>
+            <h4 class="text-danger mb-0">{{ summary.total_deductions|floatformat:"0" }} <small>ر.ي</small></h4>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm bg-primary text-white text-center py-3" style="border-radius: 15px;">
+            <p class="mb-1 text-white-50">صافي الرواتب المستحقة</p>
+            <h3 class="mb-0">{{ summary.total_net_salary|floatformat:"0" }} <small class="fs-6">ر.ي</small></h3>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow-sm border-0" style="border-radius: 15px;">
+            <div class="card-header bg-white border-0 pt-4 pb-0 d-flex justify-content-between">
+                <h5 class="mb-0"><i class="fas fa-file-invoice-dollar text-success"></i> كشوفات الرواتب لـ {{ month }}/{{ year }} (عدد: {{ summary.total_records }})</h5>
+                <div>
+                    <span class="badge bg-success me-2">مسدد: {{ summary.paid_count }}</span>
+                    <span class="badge bg-warning text-dark">غير مسدد: {{ summary.unpaid_count }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>الاسم</th>
+                                <th>النوع</th>
+                                <th>الأساسي</th>
+                                <th>ساعات التدريس</th>
+                                <th>خصم غياب</th>
+                                <th>الصافي</th>
+                                <th>الحالة</th>
+                                <th>إجراء</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in records %}
+                            <tr>
+                                <td>
+                                    <h6 class="mb-0">{% if record.employee %}{{ record.employee.full_name }}{% else %}{{ record.teacher.full_name }}{% endif %}</h6>
+                                </td>
+                                <td>
+                                    {% if record.employee %}<span class="badge bg-info">موظف إداري</span>{% else %}<span class="badge bg-secondary">مدرس</span>{% endif %}
+                                </td>
+                                <td>{{ record.basic_salary|floatformat:"0" }}</td>
+                                <td>{{ record.teaching_hours }} ساعة ({{ record.teaching_pay|floatformat:"0" }})</td>
+                                <td class="text-danger">{{ record.absence_deduction|floatformat:"0" }}</td>
+                                <td><strong>{{ record.net_salary|floatformat:"0" }}</strong></td>
+                                <td>
+                                    {% if record.is_paid %}
+                                        <span class="badge bg-success"><i class="fas fa-check"></i> تم الصرف</span>
+                                        <br><small class="text-muted">{{ record.paid_date|date:"Y-m-d" }}</small>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">معلق</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if not record.is_paid %}
+                                    <form method="post" class="d-inline" onsubmit="return confirm('تأكيد تسجيل الكشف كمدفوع؟');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="mark_paid">
+                                        <input type="hidden" name="payroll_id" value="{{ record.payroll_no }}">
+                                        <input type="hidden" name="month" value="{{ month }}">
+                                        <input type="hidden" name="year" value="{{ year }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-success rounded-pill"><i class="fas fa-money-bill-wave"></i> صرف</button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="8" class="text-center text-muted">لا توجد كشوفات لهذا الشهر. قم بتوليدها من زر الإعدادات أعلاه.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Generate Modal -->
+<div class="modal-overlay" id="generateModal">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+        <div class="modal-header bg-light border-0">
+            <h5 class="modal-title"><i class="fas fa-cogs text-success"></i> توليد كشوفات الرواتب</h5>
+            <button type="button" class="btn-close" onclick="closeModal('generateModal')">&times;</button>
+        </div>
+        <div class="modal-body p-4">
+            <p class="text-muted mb-4">سيتم حساب رواتب جميع العاملين في النظام بناءً على الراتب الأساسي وساعات التدريس والخصميات الخاصة بشهر {{ month }}/{{ year }}.</p>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="generate">
+                <input type="hidden" name="month" value="{{ month }}">
+                <input type="hidden" name="year" value="{{ year }}">
+                
+                <div class="mb-4">
+                    <label class="form-label fw-bold">الفئة المستهدفة</label>
+                    <select name="person_type" class="form-select border-0 bg-light" required>
+                        <option value="employee">الموظفين الإداريين (بمن فيهم العقود المختلطة)</option>
+                        <option value="teacher">المدرسين (عقود بالساعة)</option>
+                    </select>
+                </div>
+                
+                <div class="alert alert-info border-0" style="border-radius: 10px;">
+                    <i class="fas fa-info-circle mx-1"></i> الكشوفات المولّدة سابقاً لن يتم استبدالها لتجنب فقدان البيانات المالية.
+                </div>
+                
+                <div class="text-end mt-4">
+                    <button type="button" class="btn btn-light rounded-pill px-4" onclick="closeModal('generateModal')">إلغاء</button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4"><i class="fas fa-bolt"></i> توليد الآن</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
