@@ -1,0 +1,566 @@
+{% extends 'institute/dashboards/base_dashboard.html' %}
+{% block title %}لوحة تحكم الكنترول{% endblock %}
+{% block page_title %}إدارة الكنترول والامتحانات{% endblock %}
+
+{% block extra_css %}
+<style>
+    .control-tab-nav .nav-link {
+        border-radius: 12px;
+        color: #6c757d;
+        font-weight: 500;
+        padding: 12px 20px;
+        margin-bottom: 10px;
+        transition: all 0.3s ease;
+    }
+    .control-tab-nav .nav-link:hover {
+        background: #f8f9fa;
+        color: #4F46E5;
+    }
+    .control-tab-nav .nav-link.active {
+        background: linear-gradient(135deg, #4F46E5, #3730a3);
+        color: white;
+        box-shadow: 0 4px 15px rgba(79, 70, 229, 0.2);
+    }
+    .control-card {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Sidebar Navigation -->
+    <div class="col-md-3 mb-4">
+        <div class="card control-card h-100">
+            <div class="card-body p-4 text-center">
+                <div class="avatar-circle bg-primary text-white mx-auto mb-3" style="width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <h5 class="fw-bold mb-1">الكنترول</h5>
+                <p class="text-muted small mb-4">إدارة الامتحانات والنتائج</p>
+                
+                <div class="nav flex-column nav-pills control-tab-nav text-end" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+                    <button class="nav-link active text-end" data-bs-toggle="pill" data-bs-target="#tab-overview" type="button" role="tab">
+                        <i class="fas fa-chart-pie ms-2"></i> نظرة عامة
+                    </button>
+                    <button class="nav-link text-end" data-bs-toggle="pill" data-bs-target="#tab-schedules" type="button" role="tab">
+                        <i class="fas fa-calendar-alt ms-2"></i> جداول الامتحانات
+                    </button>
+                    <button class="nav-link text-end" data-bs-toggle="pill" data-bs-target="#tab-tracking" type="button" role="tab">
+                        <i class="fas fa-file-alt ms-2"></i> تتبع الأوراق والدفاتر
+                    </button>
+                    <button class="nav-link text-end" data-bs-toggle="pill" data-bs-target="#tab-results" type="button" role="tab">
+                        <i class="fas fa-graduation-cap ms-2"></i> اعتماد وإصدار النتائج
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-md-9 mb-4">
+        <div class="tab-content" id="v-pills-tabContent">
+            
+            <!-- 1. Overview Tab -->
+            <div class="tab-pane fade show active" id="tab-overview" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="card shadow-sm border-0 bg-primary text-white" style="border-radius: 15px;">
+                            <div class="card-body text-center">
+                                <i class="fas fa-calendar-check fa-3x mb-3 opacity-50"></i>
+                                <h2 class="mb-0 fw-bold">{{ total_exams }}</h2>
+                                <p class="mb-0">إجمالي الامتحانات</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card shadow-sm border-0 bg-warning text-dark" style="border-radius: 15px;">
+                            <div class="card-body text-center">
+                                <i class="fas fa-file-signature fa-3x mb-3 opacity-50"></i>
+                                <h2 class="mb-0 fw-bold">{{ pending_papers }}</h2>
+                                <p class="mb-0">أوراق بانتظار التصحيح</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card shadow-sm border-0 bg-success text-white" style="border-radius: 15px;">
+                            <div class="card-body text-center">
+                                <i class="fas fa-check-double fa-3x mb-3 opacity-50"></i>
+                                <h2 class="mb-0 fw-bold">{{ approved_results }}</h2>
+                                <p class="mb-0">نتائج معتمدة</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card control-card">
+                    <div class="card-header bg-white border-0 pt-4">
+                        <h5 class="mb-0"><i class="fas fa-list-ul text-primary ms-2"></i> امتحانات اليوم</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-4">المقرر</th>
+                                        <th>القاعة</th>
+                                        <th>الوقت</th>
+                                        <th>المراقب</th>
+                                        <th>الحالة</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for exam in todays_exams %}
+                                    <tr>
+                                        <td class="ps-4 fw-bold">{{ exam.subject.sub_name }}</td>
+                                        <td>{{ exam.hall_name }}</td>
+                                        <td>{{ exam.start_time|time:"H:i" }} - {{ exam.end_time|time:"H:i" }}</td>
+                                        <td>{{ exam.supervisor.get_full_name|default:"غير محدد" }}</td>
+                                        <td>
+                                            {% if exam.tracking.returned_from_hall %}
+                                                <span class="badge bg-success">تم الاسترجاع</span>
+                                            {% elif exam.tracking.delivered_to_hall %}
+                                                <span class="badge bg-warning text-dark">جاري الامتحان</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">بانتظار البدء</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="5" class="text-center py-4 text-muted">لا يوجد امتحانات مبرمجة لليوم.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 2. Schedules Tab -->
+            <div class="tab-pane fade" id="tab-schedules" role="tabpanel">
+                <div class="card control-card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="mb-0 text-primary fw-bold"><i class="fas fa-calendar-alt ms-2"></i> إدارة الجداول</h5>
+                        <button class="btn btn-primary rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addScheduleModal">
+                            <i class="fas fa-plus ms-2"></i> إضافة امتحان
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>المقرر</th>
+                                    <th>تاريخ الامتحان</th>
+                                    <th>الوقت</th>
+                                    <th>القاعة</th>
+                                    <th>المراقب</th>
+                                    <th>إجراء</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for exam in exams %}
+                                <tr>
+                                    <td>{{ exam.subject.sub_name }}</td>
+                                    <td>{{ exam.exam_date|date:"Y-m-d" }}</td>
+                                    <td>{{ exam.start_time|time:"H:i" }}</td>
+                                    <td>{{ exam.hall_name }}</td>
+                                    <td>{{ exam.supervisor.get_full_name|default:"--" }}</td>
+                                    <td>
+                                        <form method="post" style="display:inline;">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="delete_schedule">
+                                            <input type="hidden" name="schedule_id" value="{{ exam.schedule_no }}">
+                                            <button class="btn btn-sm btn-outline-danger" onclick="return confirm('هل أنت متأكد من الحذف؟')"><i class="fas fa-trash"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 3. Tracking Tab -->
+            <div class="tab-pane fade" id="tab-tracking" role="tabpanel">
+                <div class="card control-card p-4">
+                    <h5 class="mb-4 text-primary fw-bold"><i class="fas fa-file-alt ms-2"></i> تتبع حركة أوراق الامتحانات ودفاتر الإجابة</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>المقرر</th>
+                                    <th>أسئلة الأستاذ</th>
+                                    <th>تمت الطباعة</th>
+                                    <th>تسليم القاعة</th>
+                                    <th>استلام القاعة</th>
+                                    <th>تسليم الأستاذ للتصحيح</th>
+                                    <th>استرجاع من الأستاذ (مصححة)</th>
+                                    <th>تحديث</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for exam in exams %}
+                                <tr>
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="update_tracking">
+                                        <input type="hidden" name="schedule_id" value="{{ exam.schedule_no }}">
+                                        
+                                        <td class="fw-bold">{{ exam.subject.sub_name }}<br><small class="text-muted">{{ exam.exam_date|date:"m-d" }}</small></td>
+                                        
+                                        <td class="text-center">
+                                            <div class="form-check d-flex justify-content-center">
+                                                <input class="form-check-input" type="checkbox" name="questions_submitted" {% if exam.tracking.questions_submitted %}checked{% endif %}>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="form-check d-flex justify-content-center">
+                                                <input class="form-check-input" type="checkbox" name="papers_printed" {% if exam.tracking.papers_printed %}checked{% endif %}>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="form-check d-flex justify-content-center">
+                                                <input class="form-check-input" type="checkbox" name="delivered_to_hall" {% if exam.tracking.delivered_to_hall %}checked{% endif %}>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="form-check d-flex justify-content-center">
+                                                <input class="form-check-input" type="checkbox" name="returned_from_hall" {% if exam.tracking.returned_from_hall %}checked{% endif %}>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="form-check d-flex justify-content-center">
+                                                <input class="form-check-input" type="checkbox" name="delivered_to_teacher" {% if exam.tracking.delivered_to_teacher %}checked{% endif %}>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="form-check d-flex justify-content-center">
+                                                <input class="form-check-input" type="checkbox" name="returned_graded" {% if exam.tracking.returned_graded %}checked{% endif %}>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-sync-alt"></i> حفظ</button>
+                                        </td>
+                                    </form>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Results Tab -->
+            <div class="tab-pane fade" id="tab-results" role="tabpanel">
+                <div class="card control-card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                        <h5 class="mb-0 text-primary fw-bold"><i class="fas fa-graduation-cap ms-2"></i> اعتماد وإصدار النتائج</h5>
+                        <div class="d-flex gap-2">
+                            <form method="get" class="d-flex gap-2">
+                                <input type="hidden" name="tab" value="results">
+                                <select name="filter_subject" class="form-select form-select-sm" style="width:180px;">
+                                    <option value="">-- كل المواد --</option>
+                                    {% for sub in subjects %}
+                                    <option value="{{ sub.sub_no }}" {% if filter_subject == sub.sub_no|stringformat:"s" %}selected{% endif %}>{{ sub.sub_name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-3"><i class="fas fa-filter"></i> فلتر</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Stats row -->
+                    <div class="row mb-4">
+                        <div class="col-md-3 col-6 mb-2">
+                            <div class="p-3 rounded-3 text-center" style="background: rgba(79,70,229,0.1); border: 1px solid rgba(79,70,229,0.2);">
+                                <div class="fw-bold fs-4 text-primary">{{ results_stats.total }}</div>
+                                <small class="text-muted">إجمالي السجلات</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-2">
+                            <div class="p-3 rounded-3 text-center" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2);">
+                                <div class="fw-bold fs-4 text-success">{{ results_stats.passed }}</div>
+                                <small class="text-muted">ناجح</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-2">
+                            <div class="p-3 rounded-3 text-center" style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2);">
+                                <div class="fw-bold fs-4 text-danger">{{ results_stats.failed }}</div>
+                                <small class="text-muted">راسب</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-2">
+                            <div class="p-3 rounded-3 text-center" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2);">
+                                <div class="fw-bold fs-4 text-warning">{{ results_stats.avg|floatformat:1 }}</div>
+                                <small class="text-muted">المتوسط</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Results table -->
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>#</th>
+                                    <th>الطالب</th>
+                                    <th>المادة</th>
+                                    <th class="text-center">أعمال<br><small class="opacity-75">/20</small></th>
+                                    <th class="text-center">نشاط<br><small class="opacity-75">/10</small></th>
+                                    <th class="text-center">نصفي<br><small class="opacity-75">/30</small></th>
+                                    <th class="text-center">نهائي<br><small class="opacity-75">/40</small></th>
+                                    <th class="text-center fw-bold">المجموع<br><small class="opacity-75">/100</small></th>
+                                    <th class="text-center">الحالة</th>
+                                    <th>تعديل</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in results_list %}
+                                <tr id="row-{{ r.result_no }}">
+                                    <td class="text-muted small">{{ r.result_no }}</td>
+                                    <td>
+                                        <div class="fw-bold">{{ r.student.user.get_full_name|default:r.student.user.username }}</div>
+                                    </td>
+                                    <td><span class="badge bg-primary-subtle text-primary-emphasis">{{ r.subject.sub_name }}</span></td>
+                                    <td class="text-center">{{ r.attendance_grade }}</td>
+                                    <td class="text-center">{{ r.activity_grade }}</td>
+                                    <td class="text-center">{{ r.midterm_grade }}</td>
+                                    <td class="text-center">{{ r.final_grade }}</td>
+                                    <td class="text-center">
+                                        <span class="fw-bold fs-6 {% if r.grade >= 50 %}text-success{% else %}text-danger{% endif %}">
+                                            {{ r.grade }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if r.grade >= 50 %}
+                                            <span class="badge bg-success rounded-pill"><i class="fas fa-check-circle me-1"></i>ناجح</span>
+                                        {% else %}
+                                            <span class="badge bg-danger rounded-pill"><i class="fas fa-times-circle me-1"></i>راسب</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-warning rounded-pill"
+                                                data-bs-toggle="modal" data-bs-target="#editResultModal"
+                                                onclick="fillEditResult('{{ r.result_no }}','{{ r.attendance_grade }}','{{ r.activity_grade }}','{{ r.midterm_grade }}','{{ r.final_grade }}')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="10" class="text-center py-5 text-muted">
+                                        <i class="fas fa-inbox fa-3x mb-3 opacity-25 d-block"></i>
+                                        لا توجد نتائج مسجلة حتى الآن.
+                                        <br><small>يمكن للأساتذة إدخال الدرجات عبر لوحة التدريس، أو يمكنك إضافة نتائج مباشرة أدناه.</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Bulk approve button -->
+                    {% if results_list %}
+                    <div class="text-end mt-3">
+                        <button class="btn btn-success rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#approveModal">
+                            <i class="fas fa-stamp me-2"></i> اعتماد جميع النتائج المعروضة
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Add Result Card -->
+                <div class="card control-card p-4 mt-3">
+                    <h6 class="fw-bold text-primary mb-3"><i class="fas fa-plus-circle ms-2"></i> إدخال نتيجة يدوية جديدة</h6>
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="add_result">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">الطالب</label>
+                                <select name="student_id" class="form-select" required>
+                                    <option value="">-- اختر الطالب --</option>
+                                    {% for st in students %}
+                                    <option value="{{ st.id }}">{{ st.user.get_full_name|default:st.user.username }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">المادة</label>
+                                <select name="subject_id" class="form-select" required>
+                                    <option value="">-- اختر المادة --</option>
+                                    {% for sub in subjects %}
+                                    <option value="{{ sub.sub_no }}">{{ sub.sub_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">أعمال السنة (من 20)</label>
+                                <input type="number" name="attendance_grade" class="form-control" min="0" max="20" step="0.5" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">النشاط (من 10)</label>
+                                <input type="number" name="activity_grade" class="form-control" min="0" max="10" step="0.5" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">النصفي (من 30)</label>
+                                <input type="number" name="midterm_grade" class="form-control" min="0" max="30" step="0.5" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">النهائي (من 40)</label>
+                                <input type="number" name="final_grade" class="form-control" min="0" max="40" step="0.5" required>
+                            </div>
+                            <div class="col-12 text-end">
+                                <button type="submit" class="btn btn-primary rounded-pill px-4">
+                                    <i class="fas fa-save ms-2"></i> حفظ النتيجة
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Edit Result Modal -->
+<div class="modal fade" id="editResultModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <form method="post" class="modal-content" style="border-radius:15px;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="edit_result">
+            <input type="hidden" name="result_no" id="edit_result_no">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="fas fa-edit ms-2"></i> تعديل الدرجات</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <label class="form-label fw-bold">أعمال السنة (من 20)</label>
+                        <input type="number" name="attendance_grade" id="edit_att" class="form-control" min="0" max="20" step="0.5">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-bold">النشاط (من 10)</label>
+                        <input type="number" name="activity_grade" id="edit_act" class="form-control" min="0" max="10" step="0.5">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-bold">النصفي (من 30)</label>
+                        <input type="number" name="midterm_grade" id="edit_mid" class="form-control" min="0" max="30" step="0.5">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-bold">النهائي (من 40)</label>
+                        <input type="number" name="final_grade" id="edit_fin" class="form-control" min="0" max="40" step="0.5">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
+                <button type="submit" class="btn btn-warning fw-bold">حفظ التعديلات</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- Add Schedule Modal -->
+<div class="modal fade" id="addScheduleModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <form method="post" class="modal-content" style="border-radius: 15px;">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">إضافة جدول امتحان</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_schedule">
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label text-end w-100 fw-bold">المقرر (المادة)</label>
+                    <select name="subject" class="form-select" required>
+                        {% for sub in subjects %}
+                        <option value="{{ sub.sub_no }}">{{ sub.sub_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-end w-100 fw-bold">تاريخ الامتحان</label>
+                    <input type="date" name="exam_date" class="form-control" required>
+                </div>
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label class="form-label text-end w-100 fw-bold">وقت البدء</label>
+                        <input type="time" name="start_time" class="form-control" required>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label class="form-label text-end w-100 fw-bold">وقت الانتهاء</label>
+                        <input type="time" name="end_time" class="form-control" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-end w-100 fw-bold">القاعة</label>
+                    <input type="text" name="hall_name" class="form-control" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
+                <button type="submit" class="btn btn-primary">حفظ</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Bulk Approve Modal -->
+<div class="modal fade" id="approveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="post" class="modal-content" style="border-radius: 15px;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="bulk_approve">
+            <input type="hidden" name="subject_id" value="{{ filter_subject }}">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-stamp ms-2"></i> اعتماد النتائج</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="fas fa-exclamation-triangle text-warning fa-3x mb-3"></i>
+                <h5 class="fw-bold">هل أنت متأكد من اعتماد هذه النتائج؟</h5>
+                <p class="text-muted">
+                    {% if filter_subject %}
+                    سيتم اعتماد نتائج مادة محددة.
+                    {% else %}
+                    سيتم اعتماد كافة النتائج المعروضة.
+                    {% endif %}
+                    بعد الاعتماد، ستظهر النتائج للطلاب ولا يمكن تعديلها إلا بصلاحيات الإدارة.
+                </p>
+            </div>
+            <div class="modal-footer justify-content-center border-0">
+                <button type="button" class="btn btn-light px-4 rounded-pill" data-bs-dismiss="modal">إلغاء</button>
+                <button type="submit" class="btn btn-success px-4 rounded-pill">نعم، اعتمد النتائج</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function fillEditResult(resultNo, att, act, mid, fin) {
+    document.getElementById('edit_result_no').value = resultNo;
+    document.getElementById('edit_att').value = att;
+    document.getElementById('edit_act').value = act;
+    document.getElementById('edit_mid').value = mid;
+    document.getElementById('edit_fin').value = fin;
+}
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('tab') === 'results') {
+        const btn = document.querySelector('[data-bs-target="#tab-results"]');
+        if (btn) { btn.click(); }
+    }
+});
+</script>
+{% endblock %}
