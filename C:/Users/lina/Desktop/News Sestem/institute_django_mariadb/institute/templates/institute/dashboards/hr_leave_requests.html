@@ -1,0 +1,172 @@
+{% extends 'institute/dashboards/base_dashboard.html' %}
+{% block title %}طلبات الإجازة{% endblock %}
+{% block page_title %}إدارة طلبات الإجازة للموظفين والمدرسين{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <a href="{% url 'hr_dashboard' %}" class="btn btn-outline-secondary rounded-pill mb-3">
+            <i class="fas fa-arrow-right"></i> العودة للوحة الموارد البشرية
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- الطلبات المعلقة -->
+    <div class="col-md-12 mb-4">
+        <div class="card shadow-sm border-0" style="border-radius: 15px;">
+            <div class="card-header bg-white border-0 pt-4 pb-0">
+                <h5 class="mb-0 text-danger"><i class="fas fa-hourglass-half"></i> الطلبات بانتظار الموافقة ({{ pending.count }})</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>مقدم الطلب</th>
+                                <th>نوع الإجازة</th>
+                                <th>الفترة</th>
+                                <th>المدة (أيام)</th>
+                                <th>السبب</th>
+                                <th>إجراء</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for leave in pending %}
+                            <tr>
+                                <td>
+                                    <h6 class="mb-0">{{ leave.requester.full_name }}</h6>
+                                    <small class="text-muted">{{ leave.requester.get_role_display }}</small>
+                                </td>
+                                <td><span class="badge bg-info text-dark">{{ leave.leave_type }}</span></td>
+                                <td>{{ leave.start_date|date:"Y-m-d" }} <i class="fas fa-arrow-left text-muted mx-1"></i> {{ leave.end_date|date:"Y-m-d" }}</td>
+                                <td>{{ leave.duration_days }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-link" onclick="openReasonModal('{{ leave.reason|escapejs }}')">عرض السبب</button>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-success rounded-pill" onclick="openReviewModal('{{ leave.request_no }}', 'approve')"><i class="fas fa-check"></i></button>
+                                    <button class="btn btn-sm btn-danger rounded-pill" onclick="openReviewModal('{{ leave.request_no }}', 'reject')"><i class="fas fa-times"></i></button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="6" class="text-center text-muted">لا توجد طلبات إجازة معلقة حالياً</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- سجل الإجازات السابقة -->
+    <div class="col-md-12">
+        <div class="card shadow-sm border-0" style="border-radius: 15px;">
+            <div class="card-header bg-white border-0 pt-4 pb-0">
+                <h5 class="mb-0 text-primary"><i class="fas fa-history"></i> سجل الإجازات المراجعة (أحدث 50)</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>مقدم الطلب</th>
+                                <th>نوع الإجازة</th>
+                                <th>الفترة</th>
+                                <th>الحالة</th>
+                                <th>المُراجع</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for leave in history %}
+                            <tr>
+                                <td>{{ leave.requester.full_name }}</td>
+                                <td>{{ leave.leave_type }}</td>
+                                <td>{{ leave.start_date|date:"Y-m-d" }} إلى {{ leave.end_date|date:"Y-m-d" }}</td>
+                                <td>
+                                    {% if leave.status == 'approved' %}<span class="badge bg-success">مقبولة</span>
+                                    {% else %}<span class="badge bg-danger">مرفوضة</span>{% endif %}
+                                </td>
+                                <td>{{ leave.reviewed_by.full_name|default:"--" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center text-muted">لا توجد طلبات إجازة سابقة</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reason Modal -->
+<div class="modal-overlay" id="reasonModal">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+        <div class="modal-header">
+            <h5 class="modal-title">سبب الإجازة</h5>
+            <button type="button" class="btn-close" onclick="closeModal('reasonModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="reasonText" class="lead" style="white-space: pre-wrap;"></p>
+        </div>
+        <div class="modal-footer border-0">
+            <button type="button" class="btn btn-secondary rounded-pill" onclick="closeModal('reasonModal')">إغلاق</button>
+        </div>
+    </div>
+</div>
+
+<!-- Review Modal -->
+<div class="modal-overlay" id="reviewModal">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+        <div class="modal-header">
+            <h5 class="modal-title" id="reviewTitle">مراجعة طلب الإجازة</h5>
+            <button type="button" class="btn-close" onclick="closeModal('reviewModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" id="reviewAction">
+                <input type="hidden" name="request_id" id="reviewRequestId">
+                
+                <div class="mb-4">
+                    <label class="form-label">ملاحظات الإدارة (تصل للموظف - اختياري)</label>
+                    <textarea name="review_notes" class="form-control" rows="3" placeholder="اكتب مبررات الرفض أو ملاحظات القبول هنا..."></textarea>
+                </div>
+                
+                <div class="text-end">
+                    <button type="button" class="btn btn-light rounded-pill px-4" onclick="closeModal('reviewModal')">إلغاء</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4" id="reviewSubmitBtn">تأكيد</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openReasonModal(reason) {
+        document.getElementById('reasonText').textContent = reason;
+        openModal('reasonModal');
+    }
+    
+    function openReviewModal(reqId, action) {
+        document.getElementById('reviewRequestId').value = reqId;
+        document.getElementById('reviewAction').value = action;
+        
+        const title = document.getElementById('reviewTitle');
+        const btn = document.getElementById('reviewSubmitBtn');
+        
+        if(action === 'approve') {
+            title.innerHTML = '<span class="text-success">الموافقة على طلب الإجازة</span>';
+            btn.className = 'btn btn-success rounded-pill px-4';
+            btn.textContent = 'اعتماد الطلب';
+        } else {
+            title.innerHTML = '<span class="text-danger">رفض طلب الإجازة</span>';
+            btn.className = 'btn btn-danger rounded-pill px-4';
+            btn.textContent = 'رفض الطلب';
+        }
+        
+        openModal('reviewModal');
+    }
+</script>
+{% endblock %}
