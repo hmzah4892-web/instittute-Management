@@ -1,0 +1,428 @@
+{% extends 'institute/dashboards/base_dashboard.html' %}
+{% block title %}لوحة الموارد البشرية{% endblock %}
+{% block page_title %}إدارة الموارد البشرية (HR){% endblock %}
+
+{% block extra_css %}
+<style>
+    .hr-tab-nav .nav-link {
+        border-radius: 12px;
+        color: #6c757d;
+        font-weight: 500;
+        padding: 12px 20px;
+        margin-bottom: 10px;
+        transition: all 0.3s ease;
+    }
+    .hr-tab-nav .nav-link:hover {
+        background: #f8f9fa;
+        color: #198754;
+    }
+    .hr-tab-nav .nav-link.active {
+        background: linear-gradient(135deg, #198754, #146c43);
+        color: white;
+        box-shadow: 0 4px 15px rgba(25, 135, 84, 0.2);
+    }
+    .sidebar-logo-img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid rgba(255,255,255,0.15);
+    box-shadow: 0 4px 15px rgba(79,70,229,0.4);
+    transition: all 0.3s ease;
+}
+/* Ensure responsive images */
+img {
+    max-width: 100%;
+    height: auto;
+}
+    .hr-card {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Sidebar Navigation -->
+    <div class="col-md-3 mb-4">
+        <div class="card hr-card h-100">
+            <div class="card-body p-4 text-center">
+                <div class="avatar-circle bg-success text-white mx-auto mb-3" style="width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">
+                    <i class="fas fa-users-cog"></i>
+                </div>
+                <h5 class="fw-bold mb-1">الموارد البشرية</h5>
+                <p class="text-muted small mb-4">لوحة تحكم المدير</p>
+                
+                <div class="nav flex-column nav-pills hr-tab-nav text-end" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+                    <button class="nav-link active text-end" data-bs-toggle="pill" data-bs-target="#tab-overview" type="button" role="tab">
+                        <i class="fas fa-chart-pie ms-2"></i> الإحصائيات والحضور
+                    </button>
+                    <button class="nav-link text-end" data-bs-toggle="pill" data-bs-target="#tab-employees" type="button" role="tab" {% if search_query %}id="employees-tab-btn"{% endif %}>
+                        <i class="fas fa-users ms-2"></i> إدارة الموظفين
+                    </button>
+                    <a href="{% url 'hr_leave_requests' %}" class="nav-link text-end text-decoration-none">
+                        <i class="fas fa-calendar-times ms-2"></i> طلبات الإجازات
+                        {% if pending_leaves_count > 0 %}<span class="badge bg-danger ms-2">{{ pending_leaves_count }}</span>{% endif %}
+                    </a>
+                    <a href="{% url 'hr_payroll' %}" class="nav-link text-end text-decoration-none">
+                        <i class="fas fa-money-check-alt ms-2"></i> محرك الرواتب
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-md-9 mb-4">
+        <div class="tab-content" id="v-pills-tabContent">
+            
+            <!-- 1. Overview Tab -->
+            <div class="tab-pane fade show active" id="tab-overview" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="card shadow-sm border-0 bg-primary text-white" style="border-radius: 15px;">
+                            <div class="card-body text-center">
+                                <i class="fas fa-users fa-3x mb-3 opacity-50"></i>
+                                <h2 class="mb-0 fw-bold">{{ total_employees }}</h2>
+                                <p class="mb-0">إجمالي الموظفين</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card shadow-sm border-0 bg-success text-white" style="border-radius: 15px;">
+                            <div class="card-body text-center">
+                                <i class="fas fa-check-circle fa-3x mb-3 opacity-50"></i>
+                                <h2 class="mb-0 fw-bold">{{ present_today }}</h2>
+                                <p class="mb-0">حاضرون اليوم</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card shadow-sm border-0 bg-warning text-dark" style="border-radius: 15px;">
+                            <div class="card-body text-center">
+                                <i class="fas fa-calendar-minus fa-3x mb-3 opacity-50"></i>
+                                <h2 class="mb-0 fw-bold">{{ on_leave }}</h2>
+                                <p class="mb-0">في إجازة</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card hr-card">
+                    <div class="card-header bg-white border-0 pt-4">
+                        <h5 class="mb-0"><i class="fas fa-list-ul text-primary ms-2"></i> سجل حضور اليوم</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-4">الموظف</th>
+                                        <th>القسم</th>
+                                        <th>الحضور</th>
+                                        <th>الانصراف</th>
+                                        <th>الحالة</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for log in todays_attendance %}
+                                    <tr>
+                                        <td class="ps-4">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-light rounded-circle d-flex justify-content-center align-items-center" style="width: 40px; height: 40px; margin-left: 10px;">
+                                                    <i class="fas fa-user text-secondary"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0 fw-bold">{{ log.employee.full_name }}</h6>
+                                                    <small class="text-muted">{{ log.employee.job_title }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ log.employee.administration.admin_name|default:"--" }}</td>
+                                        <td><span class="badge bg-success">{{ log.check_in|time:"H:i"|default:"--" }}</span></td>
+                                        <td><span class="badge bg-warning text-dark">{{ log.check_out|time:"H:i"|default:"--" }}</span></td>
+                                        <td>
+                                            {% if log.status == 'present' %}<span class="text-success"><i class="fas fa-check-circle"></i> حاضر</span>
+                                            {% elif log.status == 'absent' %}<span class="text-danger"><i class="fas fa-times-circle"></i> غائب</span>
+                                            {% else %}<span class="text-warning"><i class="fas fa-clock"></i> متأخر</span>{% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="5" class="text-center text-muted py-4">لا توجد سجلات حضور لليوم</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Employees Management Tab -->
+            <div class="tab-pane fade" id="tab-employees" role="tabpanel">
+                <div class="card hr-card">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="text-primary mb-0"><i class="fas fa-users-cog ms-2"></i> بوابة الموظفين والاستعلام</h5>
+                            <button class="btn btn-primary rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
+                                <i class="fas fa-user-plus ms-2"></i> إضافة موظف جديد
+                            </button>
+                        </div>
+                        
+                        <!-- Search Bar -->
+                        <form method="get" class="mb-4">
+                            <div class="input-group input-group-lg shadow-sm" style="border-radius: 12px; overflow: hidden;">
+                                <input type="text" name="search_query" class="form-control border-0" placeholder="ابحث بالاسم، الهوية، أو الهاتف..." value="{{ search_query }}">
+                                <button class="btn btn-light border-0 px-4" type="submit"><i class="fas fa-search text-primary"></i></button>
+                                {% if search_query %}
+                                    <a href="{% url 'hr_dashboard' %}" class="btn btn-light border-0 text-danger"><i class="fas fa-times"></i> إزالة البحث</a>
+                                {% endif %}
+                            </div>
+                        </form>
+
+                        <!-- Employees Table -->
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle border">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>الاسم واسم المستخدم</th>
+                                        <th>الوظيفة والقسم</th>
+                                        <th>الراتب الأساسي</th>
+                                        <th>الحالة</th>
+                                        <th>إجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for emp in employees %}
+                                    <tr>
+                                        <td>{{ emp.id }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center" style="width: 35px; height: 35px; margin-left: 10px;">
+                                                    {{ emp.full_name|first }}
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0 fw-bold">{{ emp.full_name }}</h6>
+                                                    <small class="text-muted">@{{ emp.user.username }} | {{ emp.national_id }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="d-block">{{ emp.job_title }}</span>
+                                            <small class="text-muted">{{ emp.administration.admin_name|default:"بدون إدارة" }}</small>
+                                        </td>
+                                        <td><span class="fw-bold text-success">{{ emp.basic_salary_amount|floatformat:"0" }}</span> <small>ر.ي</small></td>
+                                        <td>
+                                            {% if emp.status == 'نشط' or emp.status == 'active' %}
+                                                <span class="badge bg-success">نشط</span>
+                                            {% elif emp.status == 'في إجازة' or emp.status == 'on_leave' %}
+                                                <span class="badge bg-warning text-dark">إجازة</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">موقوف/مفصول</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-info rounded-pill" title="تعديل بيانات الموظف" data-bs-toggle="modal" data-bs-target="#editEmployeeModal{{ emp.id }}">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger rounded-pill" title="إيقاف الموظف" data-bs-toggle="modal" data-bs-target="#deleteEmployeeModal{{ emp.id }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Edit Employee Modal -->
+                                    <div class="modal fade" id="editEmployeeModal{{ emp.id }}" tabindex="-1">
+                                        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                            <form method="post" class="modal-content" style="border-radius: 15px;">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">تعديل الموظف: {{ emp.full_name }}</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                {% csrf_token %}
+                                                    <input type="hidden" name="action" value="edit_employee">
+                                                    <input type="hidden" name="emp_id" value="{{ emp.id }}">
+                                                    <div class="modal-body">
+                                                        <div class="row">
+                                                            <div class="col-md-6 mb-3">
+                                                                <label>الاسم الكامل</label>
+                                                                <input type="text" name="full_name" class="form-control" value="{{ emp.full_name }}" required>
+                                                            </div>
+                                                            <div class="col-md-6 mb-3">
+                                                                <label>تغيير كلمة المرور (اختياري)</label>
+                                                                <input type="password" name="password" class="form-control" placeholder="اتركه فارغاً لعدم التغيير">
+                                                            </div>
+                                                            <div class="col-md-6 mb-3">
+                                                                <label>رقم الهوية</label>
+                                                                <input type="text" name="national_id" class="form-control" value="{{ emp.national_id|default:'' }}">
+                                                            </div>
+                                                            <div class="col-md-6 mb-3">
+                                                                <label>المسمى الوظيفي</label>
+                                                                <input type="text" name="job_title" class="form-control" value="{{ emp.job_title }}">
+                                                            </div>
+                                                            <div class="col-md-6 mb-3">
+                                                                <label>الإدارة / القسم</label>
+                                                                <select name="administration" class="form-select">
+                                                                    <option value="">بدون</option>
+                                                                    {% for admin in administrations %}
+                                                                    <option value="{{ admin.admin_no }}" {% if emp.administration_id == admin.admin_no %}selected{% endif %}>{{ admin.admin_name }}</option>
+                                                                    {% endfor %}
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-md-6 mb-3">
+                                                                <label>الراتب الأساسي</label>
+                                                                <input type="number" step="0.01" name="basic_salary_amount" class="form-control" value="{{ emp.basic_salary_amount|floatformat:'2' }}">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">إلغاء</button>
+                                                        <button type="submit" class="btn btn-primary rounded-pill px-4">حفظ التعديلات</button>
+                                                    </div>
+                                            </form>
+                                        </div>
+                                    </div>
+
+                                    <!-- Delete Employee Modal -->
+                                    <div class="modal fade" id="deleteEmployeeModal{{ emp.id }}" tabindex="-1">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content" style="border-radius: 15px;">
+                                                <div class="modal-header bg-danger text-white">
+                                                    <h5 class="modal-title">تأكيد إيقاف الموظف</h5>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body text-center py-4">
+                                                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                                                    <h5>هل أنت متأكد من إيقاف وفصل الموظف؟</h5>
+                                                    <p class="text-muted">لن يتم حذفه من النظام للحفاظ على سجلات الرواتب السابقة، ولكن لن يتمكن من تسجيل الدخول وسيصبح غير نشط.</p>
+                                                    <h6 class="fw-bold text-danger">{{ emp.full_name }}</h6>
+                                                </div>
+                                                <div class="modal-footer justify-content-center">
+                                                    <form method="post">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="action" value="delete_employee">
+                                                        <input type="hidden" name="emp_id" value="{{ emp.id }}">
+                                                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">إلغاء</button>
+                                                        <button type="submit" class="btn btn-danger rounded-pill px-4">نعم، إيقاف الموظف</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {% empty %}
+                                    <tr><td colspan="6" class="text-center text-muted py-5"><i class="fas fa-search fa-2x mb-2 opacity-50"></i><br>لم يتم العثور على أي موظف</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Add Employee Modal -->
+<div class="modal fade" id="addEmployeeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <form method="post" class="modal-content" style="border-radius: 15px;">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-user-plus ms-2"></i> إضافة موظف جديد</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            {% csrf_token %}
+                <input type="hidden" name="action" value="add_employee">
+                <div class="modal-body p-4">
+                    <h6 class="text-primary mb-3">بيانات الدخول</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">اسم المستخدم (Username) *</label>
+                            <input type="text" name="username" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">كلمة المرور *</label>
+                            <input type="password" name="password" class="form-control" required>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    <h6 class="text-primary mb-3">البيانات الشخصية والإدارية</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">الاسم الكامل *</label>
+                            <input type="text" name="full_name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">رقم الهوية</label>
+                            <input type="text" name="national_id" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">الجنس</label>
+                            <select name="gender" class="form-select">
+                                <option value="ذكر">ذكر</option>
+                                <option value="أنثى">أنثى</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">المسمى الوظيفي *</label>
+                            <input type="text" name="job_title" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">الإدارة / القسم</label>
+                            <select name="administration" class="form-select">
+                                <option value="">بدون</option>
+                                {% for admin in administrations %}
+                                <option value="{{ admin.admin_no }}">{{ admin.admin_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">تاريخ التعيين</label>
+                            <input type="date" name="hire_date" class="form-control">
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    <h6 class="text-primary mb-3">البيانات المالية</h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">نوع العقد</label>
+                            <select name="contract_type" class="form-select">
+                                {% for val, label in contract_types %}
+                                <option value="{{ val }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">الراتب الأساسي *</label>
+                            <input type="number" step="0.01" name="basic_salary_amount" class="form-control" value="0" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">أجر الساعة الإضافية</label>
+                            <input type="number" step="0.01" name="hourly_rate" class="form-control" value="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4"><i class="fas fa-save ms-2"></i> حفظ الموظف</button>
+                </div>
+        </form>
+    </div>
+</div>
+
+{% if search_query %}
+<!-- سكريبت لتفعيل تبويبة الموظفين تلقائياً عند وجود بحث -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var triggerEl = document.querySelector('#employees-tab-btn');
+        var tab = new bootstrap.Tab(triggerEl);
+        tab.show();
+    });
+</script>
+{% endif %}
+{% endblock %}
