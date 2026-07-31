@@ -1,0 +1,247 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الأرشيف الرقمي وسجلات الأمان - نظام المعهد</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        .archive-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
+        .card-box { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--card-border); border-radius: 1rem; padding: 1.5rem; box-shadow: var(--card-shadow); margin-bottom: 1.5rem; }
+        .card-box h3 { font-size: 1.1rem; color: #fff; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; }
+        
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid var(--card-border);
+            background: rgba(255,255,255,0.05); color: #fff; font-family: 'Cairo';
+        }
+        .form-group input[type="file"] { padding: 0.5rem; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none; border-color: var(--primary);
+        }
+        
+        .btn-submit {
+            width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: none;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #fff; font-family: 'Cairo'; font-weight: 600; cursor: pointer; transition: var(--trans);
+        }
+        .btn-submit:hover { opacity: 0.9; transform: translateY(-2px); }
+
+        .table-responsive { overflow-x: auto; }
+        .table { width: 100%; border-collapse: collapse; text-align: right; }
+        .table th, .table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--card-border); }
+        .table th { color: var(--text-muted); font-size: 0.85rem; font-weight: 600; }
+        .table td { color: #fff; font-size: 0.9rem; }
+        
+        .badge { padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600; }
+        .badge.student { background: rgba(16,185,129,0.15); color: #34D399; border: 1px solid rgba(16,185,129,0.3); }
+        .badge.employee { background: rgba(79,70,229,0.15); color: #818CF8; border: 1px solid rgba(79,70,229,0.3); }
+
+        .search-bar { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+        .search-bar input { flex-grow: 1; padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid var(--card-border); background: rgba(255,255,255,0.05); color: #fff; font-family: 'Cairo'; }
+        .search-bar button { padding: 0.75rem 1.5rem; border-radius: 0.5rem; border: none; background: var(--primary); color: #fff; font-family: 'Cairo'; font-weight: 600; cursor: pointer; }
+
+        .audit-section { margin-top: 2rem; }
+        
+        @media (max-width: 1024px) {
+            .archive-layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h3>نظام المعهد</h3>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="{% url 'dashboard' %}"><i class="fas fa-home"></i> الرئيسية</a></li>
+                {% if user.role == 'manager' %}
+                <li><a href="{% url 'manager_users' %}"><i class="fas fa-users-cog"></i> إدارة الموظفين</a></li>
+                <li><a href="{% url 'manager_departments' %}"><i class="fas fa-building"></i> إدارة الأقسام</a></li>
+                {% else %}
+                <li><a href="{% url 'finance_invoices' %}"><i class="fas fa-file-invoice-dollar"></i> الفواتير</a></li>
+                {% endif %}
+                <li><a href="{% url 'finance_expenses' %}"><i class="fas fa-wallet"></i> المصروفات</a></li>
+                <li><a href="{% url 'document_archive' %}" class="active"><i class="fas fa-archive"></i> الأرشيف الرقمي</a></li>
+                <li><a href="{% url 'messages' %}"><i class="fas fa-envelope"></i> الرسائل</a></li>
+                <li><a href="{% url 'logout' %}" style="color:#F87171;margin-top:2rem;"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header class="topbar">
+                <div class="topbar-title">
+                    <h4><i class="fas fa-archive" style="margin-left:0.5rem;color:var(--primary);"></i> نظام إدارة الوثائق الإلكترونية (EDMS)</h4>
+                </div>
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i> {{ user.get_full_name|default:user.username }} ({{ user.get_role_display }})
+                </div>
+            </header>
+
+            <main class="content">
+                <!-- Messages -->
+                {% if messages %}
+                    {% for message in messages %}
+                        <div style="padding:1rem; border-radius:0.5rem; margin-bottom:1.5rem; background:{% if message.tags == 'success' %}rgba(16,185,129,0.15); color:#6EE7B7; border:1px solid rgba(16,185,129,0.3){% else %}rgba(239,68,68,0.15); color:#FCA5A5; border:1px solid rgba(239,68,68,0.3){% endif %}; font-family:'Cairo';">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <!-- Search Bar -->
+                <form method="GET" action="{% url 'document_archive' %}" class="search-bar">
+                    <input type="text" name="q" placeholder="البحث الذكي في الوثائق (الاسم، نوع الوثيقة، العنوان)..." value="{{ search_query }}">
+                    <button type="submit"><i class="fas fa-search"></i> بحث</button>
+                </form>
+
+                <!-- Layout -->
+                <div class="archive-layout">
+                    <!-- Documents List -->
+                    <div class="card-box">
+                        <h3><i class="fas fa-folder-open" style="color:var(--primary)"></i> أرشيف المستندات المؤرشفة</h3>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>عنوان الوثيقة</th>
+                                        <th>نوع الوثيقة</th>
+                                        <th>مرتبط بـ</th>
+                                        <th>تم الرفع بواسطة</th>
+                                        <th>تاريخ الرفع</th>
+                                        <th>التحكم</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for doc in documents %}
+                                        <tr>
+                                            <td>
+                                                <a href="{{ doc.file.url }}" target="_blank" style="color:var(--secondary); text-decoration:none; font-weight:600;">
+                                                    <i class="fas fa-file-pdf" style="margin-left:0.25rem;"></i> {{ doc.title }}
+                                                </a>
+                                            </td>
+                                            <td>{{ doc.doc_type }}</td>
+                                            <td>
+                                                {% if doc.student %}
+                                                    <span class="badge student">طالب: {{ doc.student.user.get_full_name|default:doc.student.user.username }}</span>
+                                                {% elif doc.employee %}
+                                                    <span class="badge employee">موظف: {{ doc.employee.user.get_full_name|default:doc.employee.user.username }}</span>
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ doc.uploaded_by.get_full_name|default:doc.uploaded_by.username }}</td>
+                                            <td>{{ doc.created_at|date:"Y-m-d H:i" }}</td>
+                                            <td>
+                                                <form method="POST" action="{% url 'document_archive' %}" style="display:inline;" onsubmit="return confirm('هل أنت متأكد من رغبتك في حذف هذه الوثيقة نهائياً؟');">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="action" value="delete">
+                                                    <input type="hidden" name="doc_id" value="{{ doc.doc_no }}">
+                                                    <button type="submit" style="background:none; border:none; color:#F87171; cursor:pointer;"><i class="fas fa-trash-alt"></i></button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr>
+                                            <td colspan="6" style="text-align:center; color:var(--text-muted); padding:2rem;">لا توجد وثائق متطابقة في الأرشيف.</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Upload Form -->
+                    <div class="card-box">
+                        <h3><i class="fas fa-upload" style="color:var(--secondary)"></i> أرشفة وثيقة جديدة</h3>
+                        <form method="POST" action="{% url 'document_archive' %}" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="upload">
+                            <div class="form-group">
+                                <label for="title">عنوان الوثيقة</label>
+                                <input type="text" name="title" id="title" placeholder="أدخل عنواناً واضحاً..." required>
+                            </div>
+                            <div class="form-group">
+                                <label for="doc_type">نوع الوثيقة</label>
+                                <select name="doc_type" id="doc_type" required>
+                                    <option value="عقد طالب">عقد طالب / التزام</option>
+                                    <option value="بطاقة هوية">بطاقة هوية / جواز</option>
+                                    <option value="مؤهل علمي">مؤهل علمي / شهادة</option>
+                                    <option value="سند رسمي">سند مالي / معاملة</option>
+                                    <option value="أخرى">أخرى</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="student_id">ربط بطالب (اختياري)</label>
+                                <select name="student_id" id="student_id">
+                                    <option value="">-- اختر طالب --</option>
+                                    {% for s in students %}
+                                        <option value="{{ s.id }}">{{ s.user.get_full_name|default:s.user.username }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="employee_id">ربط بموظف (اختياري)</label>
+                                <select name="employee_id" id="employee_id">
+                                    <option value="">-- اختر موظف --</option>
+                                    {% for e in employees %}
+                                        <option value="{{ e.id }}">{{ e.user.get_full_name|default:e.user.username }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="file">الملف المرفق</label>
+                                <input type="file" name="file" id="file" required>
+                            </div>
+                            <button type="submit" class="btn-submit"><i class="fas fa-check"></i> رفع وأرشفة الوثيقة</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Audit Log Section (For Admin & Manager Only) -->
+                {% if user.role == 'manager' or user.role == 'admin' %}
+                    <div class="card-box audit-section">
+                        <h3><i class="fas fa-shield-alt" style="color:var(--danger)"></i> سجل التدقيق والتتبع الأمني (Audit Trail)</h3>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>المستخدم</th>
+                                        <th>العملية</th>
+                                        <th>النموذج</th>
+                                        <th>رقم السجل</th>
+                                        <th>التفاصيل</th>
+                                        <th>الوقت والتاريخ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for log in audit_logs %}
+                                        <tr>
+                                            <td style="font-weight:700;">{{ log.user.username }}</td>
+                                            <td>{{ log.action }}</td>
+                                            <td>{{ log.model_name }}</td>
+                                            <td>{{ log.object_id }}</td>
+                                            <td style="color:var(--text-muted);">{{ log.details }}</td>
+                                            <td>{{ log.timestamp|date:"Y-m-d H:i:s" }}</td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr>
+                                            <td colspan="6" style="text-align:center; color:var(--text-muted); padding:2rem;">لا توجد سجلات أمان مدونة.</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                {% endif %}
+            </main>
+        </div>
+    </div>
+</body>
+</html>
