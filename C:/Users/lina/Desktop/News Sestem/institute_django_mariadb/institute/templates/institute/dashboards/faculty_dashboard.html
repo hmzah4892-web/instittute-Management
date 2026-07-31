@@ -1,0 +1,386 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم عضو هيئة التدريس - نظام إدارة المعهد</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .kpi-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: var(--trans);
+            box-shadow: var(--card-shadow);
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+        }
+        .kpi-card:nth-child(1)::before { background: linear-gradient(90deg, #4F46E5, #818CF8); }
+        .kpi-card:nth-child(2)::before { background: linear-gradient(90deg, #EC4899, #F472B6); }
+        .kpi-card:nth-child(3)::before { background: linear-gradient(90deg, #10B981, #34D399); }
+        
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+        }
+        .kpi-info h4 {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        .kpi-info p {
+            font-size: 2rem;
+            font-weight: 800;
+            margin: 0;
+            background: linear-gradient(to right, #fff, #94A3B8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .kpi-icon {
+            width: 55px;
+            height: 55px;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #fff;
+        }
+        .kpi-icon.blue {
+            background: linear-gradient(135deg, #4F46E5, #818CF8);
+            box-shadow: 0 6px 15px rgba(79,70,229,0.4);
+        }
+        .kpi-icon.pink {
+            background: linear-gradient(135deg, #EC4899, #F472B6);
+            box-shadow: 0 6px 15px rgba(236,72,153,0.4);
+        }
+        .kpi-icon.green {
+            background: linear-gradient(135deg, #10B981, #34D399);
+            box-shadow: 0 6px 15px rgba(16,185,129,0.4);
+        }
+
+        .section-box {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 1.5rem;
+            height: 100%;
+        }
+        .section-box h3 {
+            font-size: 1.1rem;
+            color: var(--text-main);
+            margin-bottom: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 0.75rem;
+        }
+
+        /* ── Timetable Schedule Grid ── */
+        .schedule-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .schedule-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: var(--trans);
+        }
+        .schedule-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--primary);
+            transform: translateX(-3px);
+        }
+        .schedule-time {
+            font-size: 0.85rem;
+            color: var(--secondary);
+            font-weight: bold;
+        }
+        .schedule-room {
+            font-size: 0.8rem;
+            background: rgba(79, 70, 229, 0.15);
+            color: #818CF8;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(79, 70, 229, 0.2);
+        }
+
+        /* ── Alerts ── */
+        .faculty-alert {
+            background: rgba(245, 158, 11, 0.06);
+            border-right: 4px solid var(--warning);
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            color: #FCD34D;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .faculty-alert.danger {
+            background: rgba(239, 68, 68, 0.06);
+            border-right: 4px solid var(--danger);
+            color: #FCA5A5;
+        }
+        .faculty-alert.info {
+            background: rgba(59, 130, 246, 0.06);
+            border-right: 4px solid var(--info);
+            color: #93C5FD;
+        }
+
+        .main-dashboard-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+        }
+        @media (max-width: 992px) {
+            .main-dashboard-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .quick-action-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #fff;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
+            transition: var(--trans);
+            margin-top: 1rem;
+        }
+        .quick-action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(236, 72, 153, 0.5);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h3>نظام المعهد</h3>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="{% url 'dashboard' %}" class="active"><i class="fas fa-home"></i> الرئيسية</a></li>
+                <li><a href="{% url 'faculty_courses' %}"><i class="fas fa-book"></i> مقرراتي</a></li>
+                <li><a href="{% url 'messages' %}"><i class="fas fa-envelope"></i> الرسائل</a></li>
+                <li><a href="{% url 'logout' %}" style="color:#F87171;margin-top:2rem;"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</a></li>
+            </ul>
+        </nav>
+        <div class="main-content">
+            <header class="topbar">
+                <div class="topbar-title">
+                    <h4><i class="fas fa-chalkboard-teacher" style="margin-left:0.5rem;color:var(--secondary);"></i> لوحة تحكم عضو هيئة التدريس</h4>
+                </div>
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i> {{ user.get_full_name|default:user.username }} ({{ user.get_role_display }})
+                </div>
+            </header>
+            <main class="content">
+                
+                <!-- KPI Section -->
+                <div class="dashboard-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-info">
+                            <h4>المقررات الدراسية</h4>
+                            <p>{{ courses.count|default:"0" }}</p>
+                        </div>
+                        <div class="kpi-icon blue"><i class="fas fa-book-open"></i></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-info">
+                            <h4>الطلاب المسجلون</h4>
+                            <p>{{ total_students|default:"0" }}</p>
+                        </div>
+                        <div class="kpi-icon pink"><i class="fas fa-user-graduate"></i></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-info">
+                            <h4>الرسائل الواردة</h4>
+                            <p>جديدة</p>
+                        </div>
+                        <div class="kpi-icon green"><i class="fas fa-envelope-open-text"></i></div>
+                    </div>
+                </div>
+
+                <div class="main-dashboard-layout">
+                    <!-- Right Column: Courses and Timetable -->
+                    <div style="display:flex;flex-direction:column;gap:1.5rem;">
+                        <!-- Courses Table -->
+                        <div class="section-box">
+                            <h3><i class="fas fa-list" style="color:var(--primary);"></i> مقرراتك الدراسية الحالية</h3>
+                            {% if courses %}
+                                <div class="table-responsive">
+                                    <table class="table" style="width:100%;">
+                                        <thead>
+                                            <tr>
+                                                <th>كود المقرر</th>
+                                                <th>اسم المقرر</th>
+                                                <th>عدد الساعات المعتمدة</th>
+                                                <th>الإجراءات</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for course in courses %}
+                                            <tr>
+                                                <td><span class="badge-active">كود {{ course.sub_no }}</span></td>
+                                                <td><strong style="color:var(--text-main);">{{ course.sub_name }}</strong></td>
+                                                <td>{{ course.hours }} ساعة</td>
+                                                <td>
+                                                    <a href="{% url 'faculty_courses' %}?course_id={{ course.sub_no }}" class="btn btn-primary" style="padding:0.4rem 0.8rem;font-size:0.85rem;">
+                                                        <i class="fas fa-pen-fancy"></i> رصد الدرجات
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <p style="color:var(--text-muted);text-align:center;padding:2rem;">لا توجد مقررات دراسية مسندة إليك حالياً.</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Weekly Lecture Timetable -->
+                        <div class="section-box">
+                            <h3><i class="fas fa-calendar-alt" style="color:var(--secondary);"></i> جدول المحاضرات والقاعات الأسبوعي</h3>
+                            <div class="schedule-list">
+                                {% if courses %}
+                                    {% for course in courses %}
+                                        <!-- Mocking a premium custom timetable based on teacher's real courses -->
+                                        {% if forloop.counter == 1 %}
+                                            <div class="schedule-item">
+                                                <div>
+                                                    <strong style="color:#fff;">{{ course.sub_name }}</strong>
+                                                    <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.25rem;">الأحد والثلاثاء</div>
+                                                </div>
+                                                <div class="schedule-time"><i class="far fa-clock"></i> 08:30 ص - 10:30 ص</div>
+                                                <div class="schedule-room"><i class="fas fa-map-marker-alt"></i> قاعة 102 (مبنى A)</div>
+                                            </div>
+                                        {% elif forloop.counter == 2 %}
+                                            <div class="schedule-item">
+                                                <div>
+                                                    <strong style="color:#fff;">{{ course.sub_name }}</strong>
+                                                    <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.25rem;">الإثنين والأربعاء</div>
+                                                </div>
+                                                <div class="schedule-time"><i class="far fa-clock"></i> 10:30 ص - 12:30 م</div>
+                                                <div class="schedule-room"><i class="fas fa-map-marker-alt"></i> معامل الحاسوب - معمل 3</div>
+                                            </div>
+                                        {% else %}
+                                            <div class="schedule-item">
+                                                <div>
+                                                    <strong style="color:#fff;">{{ course.sub_name }}</strong>
+                                                    <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.25rem;">الخميس</div>
+                                                </div>
+                                                <div class="schedule-time"><i class="far fa-clock"></i> 12:30 م - 02:30 م</div>
+                                                <div class="schedule-room"><i class="fas fa-map-marker-alt"></i> المدرج B الرئيسي</div>
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <p style="color:var(--text-muted);text-align:center;padding:1.5rem;">لا يوجد جدول محاضرات لعدم وجود مقررات مسندة.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Left Column: Announcements, Assess tools and Quick Message -->
+                    <div style="display:flex;flex-direction:column;gap:1.5rem;">
+                        
+                        <!-- Notifications/Alerts Center -->
+                        <div class="section-box">
+                            <h3><i class="fas fa-bell" style="color:var(--warning);"></i> الإشعارات العاجلة</h3>
+                            
+                            <div class="faculty-alert danger">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <div>
+                                    <strong>تنبيه الإدارة:</strong> فترة رصد درجات الأنشطة تنتهي يوم الخميس المقبل.
+                                </div>
+                            </div>
+                            
+                            <div class="faculty-alert">
+                                <i class="fas fa-info-circle"></i>
+                                <div>
+                                    <strong>تغيير قاعة:</strong> تم نقل محاضرة مقرر البرمجة يوم الثلاثاء إلى المدرج الرئيسي.
+                                </div>
+                            </div>
+
+                            <div class="faculty-alert info">
+                                <i class="fas fa-bullhorn"></i>
+                                <div>
+                                    <strong>اجتماع القسم:</strong> اجتماع مجلس الكلية القادم سيكون الساعة 11 صباحاً في قاعة الاجتماعات.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Flexible Assessment Tool Info -->
+                        <div class="section-box">
+                            <h3><i class="fas fa-tasks" style="color:var(--accent);"></i> أدوات التقييم الذكي</h3>
+                            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.5;">
+                                يدعم النظام رصد درجات الأنشطة والامتحانات مع الحساب التلقائي للمعدلات ومستويات النجاح لطلابك، مع إتاحة توثيق أسباب التعديل لحماية البيانات.
+                            </p>
+                            <a href="{% url 'faculty_courses' %}" class="quick-action-btn">
+                                <i class="fas fa-magic"></i> الدخول إلى بوابة التقييم
+                            </a>
+                        </div>
+
+                        <!-- Seamless Quick Messages -->
+                        <div class="section-box">
+                            <h3><i class="fas fa-envelope-open" style="color:var(--primary);"></i> تواصل سريع</h3>
+                            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">
+                                أرسل استفساراً عاجلاً إلى إدارة المعهد أو أرسل إعلاناً لطلابك بشكل مباشر.
+                            </p>
+                            <a href="{% url 'messages' %}" class="btn btn-secondary btn-block">
+                                <i class="fas fa-paper-plane" style="margin-left:0.5rem;"></i> صندوق الرسائل
+                            </a>
+                        </div>
+
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+</body>
+</html>
