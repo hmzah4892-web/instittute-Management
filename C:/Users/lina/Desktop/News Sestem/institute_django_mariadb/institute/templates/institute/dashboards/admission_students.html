@@ -1,0 +1,161 @@
+{% extends 'institute/dashboards/base_dashboard.html' %}
+
+{% block title %}تسجيل طالب جديد{% endblock %}
+{% block page_title %}تسجيل وإدارة الطلاب{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3 style="margin: 0;"><i class="fas fa-user-graduate" style="color:var(--primary); margin-left: 10px;"></i> قائمة الطلاب المسجلين</h3>
+        <button class="btn btn-primary" onclick="openModal('addStudentModal')">
+            <i class="fas fa-plus"></i> تسجيل طالب جديد
+        </button>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>اسم الدخول</th>
+                    <th>الاسم الكامل</th>
+                    <th>التخصص</th>
+                    <th>المستوى</th>
+                    <th>حالة القبول</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <td style="font-weight: 600;">{{ student.user.username }}</td>
+                    <td>{{ student.user.get_full_name|default:"--" }}</td>
+                    <td>{{ student.specialty.spec_name|default:"--" }}</td>
+                    <td>{{ student.level.lev_name|default:"--" }}</td>
+                    <td><span class="badge badge-success">{{ student.status|default:"مقبول" }}</span></td>
+                    <td>
+                        <form method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="user_id" value="{{ student.user.id }}">
+                            <button type="submit" class="btn btn-danger" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" onclick="return confirm('هل أنت متأكد من حذف هذا الطالب؟');">
+                                <i class="fas fa-trash"></i> حذف
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-muted);">لا يوجد طلاب مسجلين بعد.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal إضافة طالب -->
+<div class="modal-overlay" id="addStudentModal">
+    <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+            <h3 class="modal-title">تسجيل طالب جديد</h3>
+            <button type="button" class="modal-close" onclick="closeModal('addStudentModal')">&times;</button>
+        </div>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add">
+            
+            <div class="form-group">
+                <label>اسم الدخول (Username) *</label>
+                <input type="text" name="username" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label>الاسم الكامل *</label>
+                <input type="text" name="full_name" class="form-control" required>
+            </div>
+            
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                <div class="form-group">
+                    <label>البريد الإلكتروني</label>
+                    <input type="email" name="email" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>رقم هاتف الطالب</label>
+                    <input type="text" name="phone" class="form-control">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>العنوان</label>
+                <input type="text" name="address" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label>معدل الثانوية العامة</label>
+                <input type="text" name="qualification" class="form-control" placeholder="مثال: 95%">
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                <div class="form-group">
+                    <label>اسم ولي الأمر</label>
+                    <input type="text" name="parent_name" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>رقم هاتف ولي الأمر</label>
+                    <input type="text" name="parent_phone" class="form-control">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>التخصص *</label>
+                <select name="specialty" class="form-control" style="background: rgba(15,23,42,0.9); color:#fff;" required>
+                    {% for spec in specialties %}
+                    <option value="{{ spec.spec_no }}">{{ spec.spec_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>المستوى *</label>
+                <select name="level" class="form-control" style="background: rgba(15,23,42,0.9); color:#fff;" required>
+                    {% for lvl in levels %}
+                    <option value="{{ lvl.lev_no }}">{{ lvl.lev_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>وثائق الطالب (صورة شخصية، شهادة...)</label>
+                <input type="file" name="document" class="form-control" accept="image/*,.pdf,.doc,.docx" style="padding-top: 0.5rem;">
+                <small style="color:var(--text-muted);display:block;margin-top:0.25rem;">يمكنك رفع ملف واحد (سيتم أرشفته ضمن وثائق الطالب)</small>
+            </div>
+            
+            <div style="margin-top: 1.5rem; text-align: left; padding-bottom: 1rem;">
+                <p style="font-size: 0.85rem; color: var(--text-muted); float: right; margin-top:0.5rem;">كلمة المرور الافتراضية: 123456</p>
+                <button type="button" class="btn" style="background: rgba(255,255,255,0.1); color:#fff;" onclick="closeModal('addStudentModal')">إلغاء</button>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> تسجيل الطالب</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // انتقال المؤشر تلقائياً للحقل التالي عند الضغط على Enter
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            const active = document.activeElement;
+            if (active && (active.tagName === 'INPUT' || active.tagName === 'SELECT')) {
+                e.preventDefault(); // منع الإرسال التلقائي للنموذج
+                const form = active.closest('form');
+                if (form) {
+                    const focusables = Array.from(form.querySelectorAll('input:not([type="hidden"]), select, button[type="submit"]'));
+                    const index = focusables.indexOf(active);
+                    if (index > -1 && index < focusables.length - 1) {
+                        focusables[index + 1].focus();
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
