@@ -1,0 +1,736 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الدخول — نظام إدارة المعهد</title>
+    <meta name="description" content="منصة إدارة المعهد التعليمي الذكية — تسجيل الدخول">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        :root {
+            --primary:       #6366F1;
+            --primary-dark:  #4F46E5;
+            --primary-glow:  rgba(99, 102, 241, 0.35);
+            --secondary:     #EC4899;
+            --accent:        #10B981;
+            --bg:            #080B18;
+            --surface:       rgba(15, 20, 40, 0.85);
+            --glass:         rgba(255, 255, 255, 0.04);
+            --glass-border:  rgba(255, 255, 255, 0.08);
+            --text:          #F1F5F9;
+            --text-muted:    #64748B;
+            --text-soft:     #94A3B8;
+            --danger:        #EF4444;
+            --warning:       #F59E0B;
+            --success:       #10B981;
+            --trans:         all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            min-height: 100vh;
+            background-color: var(--bg);
+            overflow-x: hidden;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* ── Animated Background ── */
+        .bg-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .bg-canvas::before {
+            content: '';
+            position: absolute;
+            width: 800px; height: 800px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%);
+            top: -200px; right: -200px;
+            animation: floatA 12s ease-in-out infinite alternate;
+        }
+        .bg-canvas::after {
+            content: '';
+            position: absolute;
+            width: 600px; height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(236,72,153,0.12) 0%, transparent 70%);
+            bottom: -100px; left: -100px;
+            animation: floatB 15s ease-in-out infinite alternate;
+        }
+        @keyframes floatA { from { transform: translate(0,0) scale(1); } to { transform: translate(60px, 80px) scale(1.15); } }
+        @keyframes floatB { from { transform: translate(0,0) scale(1); } to { transform: translate(-40px, -60px) scale(1.1); } }
+
+        /* Grid dots */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image:
+                radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+        }
+
+        /* Floating particles */
+        .particles {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .particle {
+            position: absolute;
+            width: 4px; height: 4px;
+            border-radius: 50%;
+            background: var(--primary);
+            opacity: 0;
+            animation: rise var(--dur, 8s) var(--delay, 0s) ease-in infinite;
+        }
+        @keyframes rise {
+            0%   { opacity: 0; transform: translateY(100vh) scale(0); }
+            10%  { opacity: 0.6; }
+            90%  { opacity: 0.2; }
+            100% { opacity: 0; transform: translateY(-20vh) scale(1.5); }
+        }
+
+        /* ── Main Layout ── */
+        .login-wrapper {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            min-height: 100vh;
+            width: 100%;
+            padding: 2rem 1rem;
+        }
+
+        .login-panel {
+            display: flex;
+            width: 100%;
+            max-width: 1000px;
+            min-height: 600px;
+            margin: auto;
+            border-radius: 2rem;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+            box-shadow:
+                0 0 0 1px rgba(99,102,241,0.1),
+                0 40px 100px rgba(0,0,0,0.6),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+            backdrop-filter: blur(20px);
+        }
+
+        /* ── Left Branding Panel ── */
+        .brand-panel {
+            flex: 1;
+            background: linear-gradient(135deg, rgba(99,102,241,0.2) 0%, rgba(236,72,153,0.15) 50%, rgba(16,185,129,0.1) 100%);
+            border-left: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 2.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .brand-panel::before {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px; height: 400px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(99,102,241,0.15), transparent 70%);
+        }
+
+        .brand-logo {
+            width: 120px; height: 120px;
+            border-radius: 50%;
+            border: 3px solid rgba(99,102,241,0.4);
+            box-shadow: 0 0 40px rgba(99,102,241,0.3), 0 0 80px rgba(99,102,241,0.1);
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 1;
+            object-fit: cover;
+            animation: logoGlow 3s ease-in-out infinite alternate;
+        }
+        @keyframes logoGlow {
+            from { box-shadow: 0 0 30px rgba(99,102,241,0.3), 0 0 60px rgba(99,102,241,0.1); }
+            to   { box-shadow: 0 0 50px rgba(99,102,241,0.5), 0 0 100px rgba(99,102,241,0.2); }
+        }
+
+        .brand-fallback-icon {
+            width: 120px; height: 120px;
+            border-radius: 50%;
+            border: 3px solid rgba(99,102,241,0.4);
+            box-shadow: 0 0 40px rgba(99,102,241,0.3);
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: white;
+            animation: logoGlow 3s ease-in-out infinite alternate;
+        }
+
+        .brand-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #fff;
+            text-align: center;
+            line-height: 1.3;
+            position: relative;
+            z-index: 1;
+            margin-bottom: 1rem;
+        }
+        .brand-title span {
+            display: block;
+            font-size: 1rem;
+            font-weight: 400;
+            color: var(--text-soft);
+            margin-top: 0.5rem;
+        }
+
+        .brand-features {
+            list-style: none;
+            margin-top: 2rem;
+            position: relative;
+            z-index: 1;
+            width: 100%;
+        }
+        .brand-features li {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0;
+            color: var(--text-soft);
+            font-size: 0.9rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .brand-features li:last-child { border-bottom: none; }
+        .brand-features li i {
+            width: 30px; height: 30px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.85rem;
+        }
+        .brand-features li:nth-child(1) i { background: rgba(99,102,241,0.2); color: #818CF8; }
+        .brand-features li:nth-child(2) i { background: rgba(16,185,129,0.2); color: #34D399; }
+        .brand-features li:nth-child(3) i { background: rgba(236,72,153,0.2); color: #F472B6; }
+        .brand-features li:nth-child(4) i { background: rgba(245,158,11,0.2); color: #FBBF24; }
+
+        /* ── Form Panel ── */
+        .form-panel {
+            flex: 1;
+            background: var(--surface);
+            padding: 3rem 2.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            overflow-y: auto;
+        }
+
+        .form-header {
+            margin-bottom: 2.5rem;
+        }
+        .form-header h1 {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+        .form-header p { color: var(--text-muted); font-size: 0.95rem; }
+
+        /* Alert */
+        .login-alert {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.9rem 1.25rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            animation: slideDown 0.4s ease-out;
+        }
+        .login-alert.error   { background: rgba(239,68,68,0.1);   color: #FCA5A5; border: 1px solid rgba(239,68,68,0.2); }
+        .login-alert.success { background: rgba(16,185,129,0.1);  color: #6EE7B7; border: 1px solid rgba(16,185,129,0.2); }
+        .login-alert.warning { background: rgba(245,158,11,0.1);  color: #FCD34D; border: 1px solid rgba(245,158,11,0.2); }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Form Fields */
+        .field-group {
+            margin-bottom: 1.4rem;
+        }
+        .field-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-soft);
+            margin-bottom: 0.5rem;
+        }
+        .field-label i { color: var(--primary); font-size: 0.8rem; }
+
+        .field-input-wrap {
+            position: relative;
+        }
+        .field-input {
+            width: 100%;
+            padding: 0.85rem 1rem 0.85rem 3rem;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 0.75rem;
+            color: var(--text);
+            font-family: 'Cairo', sans-serif;
+            font-size: 0.95rem;
+            transition: var(--trans);
+            outline: none;
+        }
+        .field-input:focus {
+            border-color: var(--primary);
+            background: rgba(99,102,241,0.06);
+            box-shadow: 0 0 0 4px var(--primary-glow);
+        }
+        .field-input::placeholder { color: var(--text-muted); }
+        .field-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            transition: var(--trans);
+            pointer-events: none;
+        }
+        .field-input:focus + .field-icon { color: var(--primary); }
+        .field-input:focus ~ .field-icon { color: var(--primary); }
+
+        /* For password: icon on right for toggle */
+        .pwd-toggle {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: var(--trans);
+            background: none;
+            border: none;
+            padding: 0.25rem;
+        }
+        .pwd-toggle:hover { color: var(--primary); }
+
+        /* Submit Button */
+        .btn-login {
+            width: 100%;
+            padding: 0.95rem;
+            margin-top: 0.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border: none;
+            border-radius: 0.75rem;
+            color: #fff;
+            font-family: 'Cairo', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--trans);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(99,102,241,0.4);
+        }
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            transition: 0.6s;
+        }
+        .btn-login:hover::before { left: 100%; }
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(99,102,241,0.5);
+        }
+        .btn-login:active { transform: translateY(0); }
+
+        /* ── Quick Login Chips ── */
+        .quick-login-section {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--glass-border);
+        }
+        .quick-login-label {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .quick-login-label::before,
+        .quick-login-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--glass-border);
+        }
+
+        .chips-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.6rem;
+        }
+        .chip {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.55rem 0.75rem;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 0.6rem;
+            cursor: pointer;
+            transition: var(--trans);
+            user-select: none;
+        }
+        .chip:hover {
+            background: rgba(99,102,241,0.1);
+            border-color: rgba(99,102,241,0.3);
+            transform: translateY(-1px);
+        }
+        .chip-ico {
+            width: 28px; height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+            color: #fff;
+        }
+        .chip-ico.c1 { background: linear-gradient(135deg,#6366F1,#818CF8); }
+        .chip-ico.c2 { background: linear-gradient(135deg,#3B82F6,#60A5FA); }
+        .chip-ico.c3 { background: linear-gradient(135deg,#EC4899,#F472B6); }
+        .chip-ico.c4 { background: linear-gradient(135deg,#10B981,#34D399); }
+        .chip-ico.c5 { background: linear-gradient(135deg,#8B5CF6,#A78BFA); }
+        .chip-ico.c6 { background: linear-gradient(135deg,#F59E0B,#FBBF24); }
+        .chip-ico.c7 { background: linear-gradient(135deg,#EF4444,#F87171); }
+        .chip-text { display: flex; flex-direction: column; min-width: 0; }
+        .chip-role {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .chip-user {
+            font-size: 0.8rem;
+            color: var(--text);
+            font-weight: 700;
+            font-family: monospace;
+        }
+        .chip:last-child:nth-child(odd) { grid-column: span 2; }
+
+        .pwd-hint {
+            margin-top: 0.75rem;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+        .pwd-hint code {
+            background: rgba(99,102,241,0.15);
+            color: #818CF8;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            border: 1px solid rgba(99,102,241,0.2);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .brand-panel { display: none; }
+            .login-panel { max-width: 460px; border-radius: 1.5rem; }
+            .form-panel { padding: 2.5rem 1.75rem; }
+            body { overflow: auto; align-items: flex-start; padding: 2rem 1rem; }
+            .login-wrapper { min-height: auto; }
+        }
+        @media (max-width: 400px) {
+            .chips-grid { grid-template-columns: 1fr; }
+            .chip:last-child:nth-child(odd) { grid-column: span 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background -->
+    <div class="bg-canvas"></div>
+    <div class="bg-grid"></div>
+    <div class="particles" id="particles"></div>
+
+    <div class="login-wrapper">
+        <div class="login-panel">
+
+            <!-- ══ Brand Panel ══ -->
+            <div class="brand-panel">
+                <img src="{% static 'images/logo.jpg' %}"
+                     alt="شعار المعهد"
+                     class="brand-logo"
+                     onerror="this.style.display='none'; document.getElementById('brandFallback').style.display='flex';">
+                <div class="brand-fallback-icon" id="brandFallback" style="display:none;">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <div class="brand-title">
+                    نظام إدارة المعهد
+                    <span>المنصة الإدارية الذكية المتكاملة</span>
+                </div>
+                <ul class="brand-features">
+                    <li>
+                        <i class="fas fa-users-cog"></i>
+                        إدارة شاملة للمستخدمين والصلاحيات
+                    </li>
+                    <li>
+                        <i class="fas fa-chart-line"></i>
+                        تقارير مالية وأكاديمية فورية
+                    </li>
+                    <li>
+                        <i class="fas fa-shield-alt"></i>
+                        نظام أمان متعدد المستويات
+                    </li>
+                    <li>
+                        <i class="fas fa-database"></i>
+                        قاعدة بيانات MariaDB متكاملة
+                    </li>
+                </ul>
+            </div>
+
+            <!-- ══ Form Panel ══ -->
+            <div class="form-panel">
+                <div class="form-header">
+                    <h1>مرحباً بعودتك 👋</h1>
+                    <p>سجّل دخولك للوصول إلى لوحة التحكم</p>
+                </div>
+
+                {% if messages %}
+                    {% for message in messages %}
+                    <div class="login-alert {{ message.tags }}">
+                        <i class="fas fa-{% if message.tags == 'error' %}exclamation-circle{% elif message.tags == 'success' %}check-circle{% else %}info-circle{% endif %}"></i>
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="POST" id="loginForm" autocomplete="off">
+                    {% csrf_token %}
+
+                    <div class="field-group">
+                        <label class="field-label" for="username">
+                            <i class="fas fa-user"></i> اسم المستخدم
+                        </label>
+                        <div class="field-input-wrap">
+                            <input type="text"
+                                   id="username"
+                                   name="username"
+                                   class="field-input"
+                                   placeholder="أدخل اسم المستخدم"
+                                   autocomplete="username"
+                                   required>
+                            <i class="fas fa-user field-icon"></i>
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <label class="field-label" for="password">
+                            <i class="fas fa-lock"></i> كلمة المرور
+                        </label>
+                        <div class="field-input-wrap">
+                            <input type="password"
+                                   id="password"
+                                   name="password"
+                                   class="field-input"
+                                   placeholder="أدخل كلمة المرور"
+                                   autocomplete="current-password"
+                                   required>
+                            <i class="fas fa-lock field-icon"></i>
+                            <button type="button" class="pwd-toggle" id="togglePwd" aria-label="إظهار/إخفاء كلمة المرور">
+                                <i class="fas fa-eye" id="eyeIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-login" id="submitBtn">
+                        <i class="fas fa-sign-in-alt"></i>
+                        تسجيل الدخول
+                    </button>
+                </form>
+
+                <!-- Quick Login -->
+                <div class="quick-login-section">
+                    <div class="quick-login-label">الحسابات التجريبية — اضغط للملء التلقائي</div>
+                    <div class="chips-grid">
+                        <div class="chip" onclick="fillLogin('manager')" id="chip-manager">
+                            <span class="chip-ico c1"><i class="fas fa-user-tie"></i></span>
+                            <span class="chip-text">
+                                <span class="chip-role">مدير عام</span>
+                                <span class="chip-user">manager</span>
+                            </span>
+                        </div>
+                        <div class="chip" onclick="fillLogin('admin')" id="chip-admin">
+                            <span class="chip-ico c2"><i class="fas fa-user-shield"></i></span>
+                            <span class="chip-text">
+                                <span class="chip-role">مسؤول النظام</span>
+                                <span class="chip-user">admin</span>
+                            </span>
+                        </div>
+                        <div class="chip" onclick="fillLogin('shihab')" id="chip-shihab">
+                            <span class="chip-ico c3"><i class="fas fa-chalkboard-teacher"></i></span>
+                            <span class="chip-text">
+                                <span class="chip-role">هيئة تدريس</span>
+                                <span class="chip-user">shihab</span>
+                            </span>
+                        </div>
+                        <div class="chip" onclick="fillLogin('abdullah')" id="chip-abdullah">
+                            <span class="chip-ico c4"><i class="fas fa-graduation-cap"></i></span>
+                            <span class="chip-text">
+                                <span class="chip-role">طالب</span>
+                                <span class="chip-user">abdullah</span>
+                            </span>
+                        </div>
+                        <div class="chip" onclick="fillLogin('adm_sara')" id="chip-adm_sara">
+                            <span class="chip-ico c5"><i class="fas fa-user-plus"></i></span>
+                            <span class="chip-text">
+                                <span class="chip-role">قبول وتسجيل</span>
+                                <span class="chip-user">adm_sara</span>
+                            </span>
+                        </div>
+                        <div class="chip" onclick="fillLogin('fin_omar')" id="chip-fin_omar">
+                            <span class="chip-ico c6"><i class="fas fa-coins"></i></span>
+                            <span class="chip-text">
+                                <span class="chip-role">الشؤون المالية</span>
+                                <span class="chip-user">fin_omar</span>
+                            </span>
+                        </div>
+                        <div class="chip" onclick="fillLogin('manal')" id="chip-manal">
+                            <span class="chip-ico c7"><i class="fas fa-briefcase"></i></span>
+                            <span class="chip-text">
+                                <span class="chip-role">موظف إداري</span>
+                                <span class="chip-user">manal</span>
+                            </span>
+                        </div>
+                        <div class="chip" onclick="fillLogin('hr_ali')" id="chip-hr_ali">
+                            <span class="chip-ico c5"><i class="fas fa-users-cog"></i></span>
+                            <span class="chip-text">
+                                <span class="chip-role">الموارد البشرية</span>
+                                <span class="chip-user">hr_ali</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="pwd-hint">
+                        <i class="fas fa-key"></i>
+                        كلمة المرور الموحدة: <code>123456</code>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- .login-panel -->
+    </div><!-- .login-wrapper -->
+
+    <script>
+    // ── Toggle Password Visibility ──
+    const togglePwd = document.getElementById('togglePwd');
+    const pwdInput  = document.getElementById('password');
+    const eyeIcon   = document.getElementById('eyeIcon');
+
+    togglePwd.addEventListener('click', () => {
+        const isPass = pwdInput.type === 'password';
+        pwdInput.type = isPass ? 'text' : 'password';
+        eyeIcon.className = isPass ? 'fas fa-eye-slash' : 'fas fa-eye';
+    });
+
+    // ── Quick Fill Login ──
+    function fillLogin(username) {
+        const uField = document.getElementById('username');
+        const pField = document.getElementById('password');
+
+        // Remove active from all
+        document.querySelectorAll('.chip').forEach(c => c.style.borderColor = '');
+
+        // Highlight active chip
+        const activeChip = document.getElementById('chip-' + username);
+        if (activeChip) {
+            activeChip.style.borderColor = '#6366F1';
+            activeChip.style.background  = 'rgba(99,102,241,0.15)';
+            setTimeout(() => {
+                activeChip.style.borderColor = '';
+                activeChip.style.background  = '';
+            }, 1500);
+        }
+
+        // Animate fill
+        uField.value = '';
+        pField.value = '';
+        typeText(uField, username, () => typeText(pField, '123456'));
+    }
+
+    function typeText(el, text, callback) {
+        let i = 0;
+        el.focus();
+        const interval = setInterval(() => {
+            el.value += text[i++];
+            if (i >= text.length) {
+                clearInterval(interval);
+                if (callback) setTimeout(callback, 100);
+            }
+        }, 40);
+    }
+
+    // ── Loading State on Submit ──
+    document.getElementById('loginForm').addEventListener('submit', function() {
+        const btn = document.getElementById('submitBtn');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الدخول...';
+        btn.style.opacity = '0.85';
+        btn.disabled = true;
+    });
+
+    // ── Generate Floating Particles ──
+    const container = document.getElementById('particles');
+    const colors = ['#6366F1', '#EC4899', '#10B981', '#F59E0B', '#3B82F6'];
+    for (let i = 0; i < 25; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        const size = Math.random() * 4 + 2;
+        p.style.cssText = `
+            width: ${size}px;
+            height: ${size}px;
+            left: ${Math.random() * 100}%;
+            background: ${colors[Math.floor(Math.random() * colors.length)]};
+            --dur: ${Math.random() * 10 + 8}s;
+            --delay: ${Math.random() * 12}s;
+        `;
+        container.appendChild(p);
+    }
+    </script>
+</body>
+</html>
